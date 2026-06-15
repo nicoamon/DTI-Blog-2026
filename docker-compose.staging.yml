@@ -1,0 +1,33 @@
+name: dti-blog-staging
+
+services:
+  wordpress-staging:
+    image: wordpress:php8.3-apache
+    container_name: dti-blog-wp-staging
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8091:80"
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: ${MYSQL_PASSWORD}
+      WORDPRESS_DB_NAME: wp_blogstaging
+      WORDPRESS_TABLE_PREFIX: bl0gd0c_
+      WORDPRESS_CONFIG_EXTRA: |
+        if (isset($$_SERVER['HTTP_X_FORWARDED_PROTO']) && $$_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') { $$_SERVER['HTTPS'] = 'on'; }
+        define('WP_HOME','https://dti.amon.id/blog');
+        define('WP_SITEURL','https://dti.amon.id/blog');
+        define('FS_METHOD','direct');
+    volumes:
+      - wp_staging_data:/var/www/html
+      - ./blog-subdir.conf:/etc/apache2/conf-enabled/zz-blog.conf:ro
+      - ./uploads.ini:/usr/local/etc/php/conf.d/uploads.ini:ro
+    networks:
+      - dti-blog_default
+
+volumes:
+  wp_staging_data:
+
+networks:
+  dti-blog_default:
+    external: true

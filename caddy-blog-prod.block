@@ -1,0 +1,8 @@
+
+# DTI Blog — PRODUKSI (blog.dtisolution.id). Aktifkan saat cutover.
+blog.dtisolution.id {
+	@static path *.css *.js *.jpg *.jpeg *.png *.gif *.webp *.svg *.ico *.woff *.woff2 *.ttf *.eot *.mp4 *.mp3
+	header @static Cache-Control "public, max-age=31536000, immutable"
+	encode gzip zstd
+	reverse_proxy 127.0.0.1:8090
+}

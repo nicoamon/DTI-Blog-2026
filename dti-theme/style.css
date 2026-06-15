@@ -1,0 +1,425 @@
+/*
+Theme Name: DTI Blog
+Theme URI: https://dtisolution.id/blog
+Description: Child theme of Gridlove that restyles the Docotel/DTI blog to match the new DTI corporate website (dtisolution.id). Provides the DTI header (logo + nav + Contact CTA), the DTI footer, the brand colour tokens, and Inter typography. Design tokens sourced from dti-website tailwind.config.ts.
+Template: gridlove
+Author: DTI
+Version: 1.0.0
+*/
+
+/* =========================================================================
+   DTI design tokens — mirror of dti-website tailwind.config.ts
+   ========================================================================= */
+:root {
+  --dti-primary: #2C4A7E;
+  --dti-primary-dark: #1F365C;
+  --dti-primary-light: #5C7BAE;
+  --dti-accent: #E85A5A;
+  --dti-accent-dark: #C84545;
+  --dti-accent-text: #B83D3D;
+  --dti-text: #111827;
+  --dti-muted: #4B5563;
+  --dti-subtle: #6B7280;
+  --dti-border: #E5E7EB;
+  --dti-tint: #F3F4F6;
+  --dti-surface-light: #F9FAFB;
+  --dti-surface: #FFFFFF;
+  --dti-container: 1280px;
+  --dti-radius-sm: 6px;
+  --dti-radius-cta: 8px;
+  --dti-radius-md: 12px;
+  --dti-shadow-subtle: 0 2px 8px rgba(17, 24, 39, 0.04);
+  --dti-shadow-medium: 0 8px 24px rgba(17, 24, 39, 0.06);
+  --dti-ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* =========================================================================
+   Base typography — Inter, matching the corporate site
+   ========================================================================= */
+body,
+body.gridlove,
+.gridlove-site-content,
+button,
+input,
+select,
+textarea {
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color: var(--dti-text);
+}
+
+body { background: var(--dti-surface); }
+
+h1, h2, h3, h4, h5, h6,
+.gridlove-post-title,
+.entry-title {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: var(--dti-text);
+  letter-spacing: -0.01em;
+}
+
+a { color: var(--dti-primary); transition: color .2s var(--dti-ease); }
+a:hover, a:focus { color: var(--dti-primary-dark); }
+
+/* =========================================================================
+   HEADER — DTI navbar (white, sticky, logo + nav + red Contact CTA)
+   ========================================================================= */
+.dti-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--dti-surface);
+  border-bottom: 1px solid var(--dti-border);
+}
+.dti-header__inner {
+  max-width: var(--dti-container);
+  margin: 0 auto;
+  padding: 0 24px;
+  height: 76px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+.dti-header__logo { display: inline-flex; align-items: center; flex-shrink: 0; }
+.dti-header__logo img { height: 40px; width: auto; display: block; }
+
+.dti-nav { display: flex; align-items: center; gap: 28px; }
+.dti-nav ul { list-style: none; margin: 0; padding: 0; display: flex; align-items: center; gap: 28px; }
+.dti-nav li { position: relative; margin: 0; }
+.dti-nav a {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--dti-text);
+  text-decoration: none;
+  transition: color .2s var(--dti-ease);
+  white-space: nowrap;
+}
+.dti-nav a:hover { color: var(--dti-primary); }
+
+/* Dropdown (Topik) */
+.dti-nav .menu-item-has-children > a::after,
+.dti-nav .dti-has-children > a::after {
+  content: '';
+  display: inline-block;
+  width: 6px; height: 6px;
+  margin-left: 6px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+  opacity: .6;
+}
+.dti-nav li.dti-has-children,
+.dti-nav .menu-item-has-children { position: relative; }
+
+/* Invisible hover bridge — spans the visual gap between the trigger and the
+   panel so the cursor can travel down without the dropdown closing. This is
+   the WordPress/CSS equivalent of NavDropdown's `pt-2` bridge + 150ms grace. */
+.dti-nav li.dti-has-children::before,
+.dti-nav .menu-item-has-children::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: -40px; /* extend right so diagonal cursor travel stays inside */
+  top: 100%;
+  height: 16px;
+  display: none; /* only active while hovering — never intercepts other clicks */
+}
+.dti-nav li.dti-has-children:hover::before,
+.dti-nav li.dti-has-children:focus-within::before,
+.dti-nav .menu-item-has-children:hover::before,
+.dti-nav .menu-item-has-children:focus-within::before {
+  display: block;
+}
+
+/* Dropdown panel */
+.dti-nav .sub-menu,
+.dti-nav .dti-submenu {
+  position: absolute;
+  top: calc(100% + 12px);
+  left: -16px;
+  min-width: 270px;
+  background: var(--dti-surface);
+  border: 1px solid var(--dti-border);
+  border-radius: var(--dti-radius-md);
+  box-shadow: 0 12px 32px rgba(17, 24, 39, 0.08);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-6px);
+  transition: opacity .2s var(--dti-ease), transform .2s var(--dti-ease), visibility .2s;
+  list-style: none;
+  margin: 0;
+  z-index: 200;
+}
+.dti-nav li:hover > .sub-menu,
+.dti-nav li:hover > .dti-submenu,
+.dti-nav li:focus-within > .sub-menu,
+.dti-nav li:focus-within > .dti-submenu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+.dti-nav .sub-menu li,
+.dti-nav .dti-submenu li { margin: 0; width: 100%; }
+
+/* Two-line items — matches NavDropdown (semibold label + muted description) */
+.dti-nav .sub-menu a,
+.dti-nav .dti-submenu a {
+  display: block;
+  white-space: nowrap;
+  padding: 9px 12px;
+  border-radius: var(--dti-radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--dti-primary);
+}
+.dti-nav .sub-menu a:hover,
+.dti-nav .dti-submenu a:hover {
+  background: var(--dti-tint);
+  color: var(--dti-accent-text);
+}
+.dti-nav .dti-dd-label { display: block; }
+.dti-nav .dti-dd-desc {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.35;
+  color: var(--dti-muted);
+}
+.dti-nav .sub-menu a:hover .dti-dd-desc,
+.dti-nav .dti-submenu a:hover .dti-dd-desc { color: var(--dti-muted); }
+
+.dti-header__cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--dti-accent);
+  color: #fff !important;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 22px;
+  border-radius: var(--dti-radius-cta);
+  text-decoration: none;
+  transition: background .2s var(--dti-ease);
+  white-space: nowrap;
+}
+.dti-header__cta:hover { background: var(--dti-accent-dark); color: #fff !important; }
+
+/* Mobile toggle */
+.dti-header__toggle {
+  display: none;
+  border: 1px solid var(--dti-border);
+  background: var(--dti-surface);
+  border-radius: var(--dti-radius-cta);
+  padding: 8px 10px;
+  cursor: pointer;
+  line-height: 0;
+}
+.dti-header__toggle span {
+  display: block; width: 20px; height: 2px; margin: 4px 0;
+  background: var(--dti-text); border-radius: 2px;
+}
+
+@media (max-width: 991px) {
+  .dti-header__inner { height: 64px; }
+  .dti-header__logo img { height: 34px; }
+  .dti-nav, .dti-header__cta { display: none; }
+  .dti-header__toggle { display: inline-block; }
+  .dti-header.is-open .dti-nav {
+    display: flex;
+    position: absolute;
+    top: 64px; left: 0; right: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    background: var(--dti-surface);
+    border-bottom: 1px solid var(--dti-border);
+    padding: 8px 24px 16px;
+  }
+  .dti-header.is-open .dti-nav ul { flex-direction: column; align-items: stretch; gap: 0; width: 100%; }
+  .dti-header.is-open .dti-nav li { width: 100%; }
+  .dti-header.is-open .dti-nav a { padding: 12px 0; display: block; }
+  .dti-header.is-open .dti-nav .sub-menu,
+  .dti-header.is-open .dti-nav .dti-submenu {
+    position: static; transform: none; opacity: 1; visibility: visible;
+    box-shadow: none; border: 0; padding: 0 0 8px 12px; min-width: 0;
+  }
+}
+
+/* Gridlove reserves body padding-top for its old FIXED mobile header bar
+   (body{padding-top:100px} @≤1023px, 70px @≤579px). We replaced that bar with
+   our own STICKY .dti-header, which needs no reserved space — so the padding
+   showed as empty space above the logo (e.g. iPad Mini). Zero it out across
+   the whole responsive range. */
+@media (max-width: 1023px) {
+  body { padding-top: 0 !important; }
+}
+
+/* =========================================================================
+   FOOTER — DTI footer (navy, 4 columns, social, legal)
+   ========================================================================= */
+.dti-footer {
+  position: relative;
+  background: var(--dti-primary-dark);
+  color: #fff;
+  margin-top: 64px;
+}
+.dti-footer__inner {
+  max-width: var(--dti-container);
+  margin: 0 auto;
+  padding: 56px 24px 24px;
+}
+.dti-footer__grid {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1fr 1fr;
+  gap: 32px;
+  align-items: start;
+}
+.dti-footer__brand { display: flex; flex-direction: column; gap: 22px; }
+.dti-footer__brand img { height: 44px; width: auto; }
+.dti-footer__tagline {
+  max-width: 22rem;
+  font-size: 13px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0;
+}
+.dti-footer__social { display: flex; align-items: center; gap: 8px; }
+.dti-footer__social a {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; border-radius: 9999px;
+  border: 1px solid rgba(255,255,255,0.25);
+  background: rgba(255,255,255,0.10);
+  color: #fff;
+  transition: background .2s var(--dti-ease), border-color .2s var(--dti-ease);
+}
+.dti-footer__social a:hover { background: var(--dti-accent); border-color: var(--dti-accent); color: #fff; }
+.dti-footer__social svg { width: 18px; height: 18px; fill: currentColor; }
+
+.dti-footer__col-title {
+  margin: 0 0 18px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255,255,255,0.75);
+}
+.dti-footer__links { display: flex; flex-direction: column; gap: 12px; }
+.dti-footer__links a {
+  font-size: 13px;
+  color: rgba(255,255,255,0.70);
+  text-decoration: none;
+  transition: color .2s var(--dti-ease);
+}
+.dti-footer__links a:hover { color: #fff; }
+
+.dti-footer__divider { border: 0; border-top: 1px solid rgba(255,255,255,0.20); margin: 24px 0; }
+.dti-footer__bottom {
+  display: flex; flex-wrap: wrap; gap: 12px 24px;
+  align-items: center; justify-content: space-between;
+  font-size: 12px; color: rgba(255,255,255,0.55);
+}
+.dti-footer__bottom a { color: rgba(255,255,255,0.55); text-decoration: none; }
+.dti-footer__bottom a:hover { color: #fff; }
+.dti-footer__legal { display: flex; align-items: center; gap: 12px; }
+.dti-footer__legal .sep { color: rgba(255,255,255,0.30); }
+
+@media (max-width: 991px) {
+  .dti-footer__grid { grid-template-columns: 1fr 1fr; gap: 28px; }
+  .dti-footer__brand { grid-column: 1 / -1; }
+}
+@media (max-width: 575px) {
+  .dti-footer__grid { grid-template-columns: 1fr; }
+  .dti-footer__bottom { flex-direction: column; align-items: flex-start; }
+}
+
+/* Hide Gridlove's stock footer (we render our own) */
+#footer.gridlove-footer { display: none !important; }
+
+/* =========================================================================
+   Content accents — make Gridlove content feel like the DTI site
+   ========================================================================= */
+.gridlove-archive-title,
+.gridlove-module-title,
+.widget-title,
+.gridlove-widget-title {
+  color: var(--dti-text);
+}
+.gridlove-post-title a:hover,
+.entry-title a:hover { color: var(--dti-primary); }
+
+/* Category pills / meta accent */
+.gridlove-post-cat a,
+.post-categories a,
+.gridlove-cat {
+  color: var(--dti-accent-text) !important;
+}
+
+/* Buttons & pagination */
+.btn, .button, button.btn,
+input[type="submit"],
+.gridlove-pagination a:hover,
+.page-numbers.current {
+  background: var(--dti-primary);
+  border-color: var(--dti-primary);
+  color: #fff;
+  border-radius: var(--dti-radius-cta);
+}
+.btn:hover, .button:hover, input[type="submit"]:hover {
+  background: var(--dti-primary-dark);
+  border-color: var(--dti-primary-dark);
+}
+
+/* Links inside post content */
+.entry-content a, .gridlove-post-content a { color: var(--dti-primary); text-decoration: underline; text-underline-offset: 2px; }
+.entry-content a:hover { color: var(--dti-accent-text); }
+
+/* =========================================================================
+   Re-map Gridlove's legacy accent (#009cff bright blue) to DTI brand.
+   The theme injects an inline accent block; these rules override it.
+   ========================================================================= */
+
+/* Category labels on cards — clean DTI eyebrow pills (was loud blue blocks) */
+.entry-category { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; line-height: 1; }
+.entry-category .gridlove-cat,
+.entry-category a.gridlove-cat {
+  display: inline-block;
+  padding: 4px 10px !important;
+  border-radius: 9999px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.4 !important;
+  background-color: var(--dti-tint) !important;
+  color: var(--dti-primary) !important;
+}
+.entry-category .gridlove-cat:hover,
+.entry-category a.gridlove-cat:hover {
+  background-color: var(--dti-primary) !important;
+  color: #fff !important;
+}
+
+/* Pills, search button — DTI primary */
+.gridlove-pill,
+.gridlove-button-search { color: #fff !important; background-color: var(--dti-primary) !important; }
+
+/* Big category tiles / menu accents that used #009cff */
+.gridlove-category-menu .gridlove-cat,
+.gridlove-category-menu article,
+.gridlove-category-menu li { background-color: var(--dti-primary) !important; }
+.gridlove-category-menu article:hover a,
+.gridlove-header-responsive a:hover { color: var(--dti-primary-light) !important; }
+
+/* Hover overlays on image cards (were rgba(0,156,255,...)) */
+.gridlove-cats .gridlove-cat .entry-overlay-wrapper .entry-image:after,
+.gridlove-cat.gridlove-post-d .entry-image a:after { background-color: rgba(44,74,126,0.70) !important; }
+.gridlove-cat.gridlove-post-d:hover .entry-image a:after { background-color: rgba(44,74,126,0.90) !important; }
+
+/* Generic link hover that defaulted to the legacy blue */
+a:hover { color: var(--dti-primary); }

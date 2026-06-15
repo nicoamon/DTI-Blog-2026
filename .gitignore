@@ -1,0 +1,15 @@
+# Secrets
+.env
+.staging-admin-pass
+*.pem
+
+# Large DB dumps & content exports (do NOT commit — keep in object storage/backups)
+*.sql
+import/
+backup-*.sql
+
+# Build/preview artifacts
+preview/
+
+# OS
+.DS_Store
