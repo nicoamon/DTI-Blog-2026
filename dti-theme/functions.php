@@ -28,11 +28,16 @@ function dti_blog_enqueue_styles() {
 	);
 
 	// DTI child overrides — load last.
+	// Version = file mtime so the ?ver query busts CDN/browser caches
+	// automatically on every edit (production serves wp-content immutable for
+	// 1 year via Cloudflare/Caddy, so a static version string would go stale).
+	$child_css = get_stylesheet_directory() . '/style.css';
+	$child_ver = file_exists( $child_css ) ? filemtime( $child_css ) : wp_get_theme()->get( 'Version' );
 	wp_enqueue_style(
 		'dti-blog',
 		get_stylesheet_uri(),
 		array( 'gridlove-parent' ),
-		wp_get_theme()->get( 'Version' )
+		$child_ver
 	);
 }
 add_action( 'wp_enqueue_scripts', 'dti_blog_enqueue_styles', 999 );
