@@ -55,6 +55,67 @@ function dti_blog_setup() {
 add_action( 'after_setup_theme', 'dti_blog_setup' );
 
 /**
+ * P2 performance — lazy-load images & prioritise the LCP image.
+ * Gridlove ships 47 eager images on the homepage (no native lazy), which is the
+ * main cause of the ~11s LCP. We re-enable lazy-loading and keep only the FIRST
+ * thumbnail eager with fetchpriority=high so the hero/LCP paints fast.
+ */
+add_filter( 'wp_lazy_loading_enabled', '__return_true', 99 );
+
+function dti_blog_thumbnail_perf( $html ) {
+	static $first = true;
+	if ( ! $html ) {
+		return $html;
+	}
+	if ( $first ) {
+		$first = false; // hero / LCP candidate — load eagerly at high priority
+		if ( strpos( $html, 'fetchpriority' ) === false ) {
+			$html = str_replace( '<img ', '<img fetchpriority="high" ', $html );
+		}
+		$html = str_replace( ' loading="lazy"', '', $html );
+		return $html;
+	}
+	if ( strpos( $html, 'loading=' ) === false ) {
+		$html = str_replace( '<img ', '<img loading="lazy" decoding="async" ', $html );
+	}
+	return $html;
+}
+add_filter( 'post_thumbnail_html', 'dti_blog_thumbnail_perf', 20 );
+
+/**
+ * P2 performance — drop Contact Form 7 assets on pages with no form.
+ * CF7 enqueues its JS + CSS site-wide; on a blog a form is rare, so this removes
+ * render-blocking requests from nearly every page.
+ */
+function dti_blog_trim_cf7_assets() {
+	if ( is_singular() ) {
+		$post = get_post();
+		if ( $post && has_shortcode( $post->post_content, 'contact-form-7' ) ) {
+			return; // page actually has a form — keep assets
+		}
+	}
+	wp_dequeue_script( 'contact-form-7' );
+	wp_dequeue_script( 'swv' );
+	wp_dequeue_style( 'contact-form-7' );
+	wp_dequeue_style( 'contact-form-7-rtl' );
+}
+add_action( 'wp_enqueue_scripts', 'dti_blog_trim_cf7_assets', 100 );
+
+/**
+ * P2 performance — defer render-blocking scripts that don't need to run before
+ * paint. jQuery + masonry/imagesloaded are left untouched (the grid layout
+ * depends on their synchronous order); we defer the standalone helpers.
+ */
+function dti_blog_defer_scripts( $tag, $handle ) {
+	$defer = array( 'wp-hooks', 'wp-i18n', 'contact-form-7', 'swv', 'google-recaptcha' );
+	if ( in_array( $handle, $defer, true ) && strpos( $tag, ' defer' ) === false && strpos( $tag, ' async' ) === false ) {
+		$tag = str_replace( ' src=', ' defer src=', $tag );
+	}
+	return $tag;
+}
+add_filter( 'script_loader_tag', 'dti_blog_defer_scripts', 10, 2 );
+
+/**
  * Append a DTI product CTA to the end of single blog posts — turns the blog
  * into a lead funnel back to the product/contact pages on the main site.
  */
