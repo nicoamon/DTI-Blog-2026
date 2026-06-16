@@ -13,3 +13,7 @@ preview/
 
 # OS
 .DS_Store
+
+# DB backups (keep off git)
+backups/
+*.sql.gz

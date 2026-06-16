@@ -405,9 +405,13 @@ input[type="submit"],
   color: #fff !important;
 }
 
-/* Pills, search button — DTI primary */
+/* Pills, search button, and big category tiles (article.gridlove-cat) — DTI primary.
+   (Small card pills keep their tint look via the more-specific
+   `.entry-category .gridlove-cat` rule above.) */
 .gridlove-pill,
-.gridlove-button-search { color: #fff !important; background-color: var(--dti-primary) !important; }
+.gridlove-button-search,
+.gridlove-cats article.gridlove-cat,
+article.gridlove-post-c.gridlove-cat { color: #fff !important; background-color: var(--dti-primary) !important; }
 
 /* Big category tiles / menu accents that used #009cff */
 .gridlove-category-menu .gridlove-cat,
@@ -418,8 +422,49 @@ input[type="submit"],
 
 /* Hover overlays on image cards (were rgba(0,156,255,...)) */
 .gridlove-cats .gridlove-cat .entry-overlay-wrapper .entry-image:after,
-.gridlove-cat.gridlove-post-d .entry-image a:after { background-color: rgba(44,74,126,0.70) !important; }
-.gridlove-cat.gridlove-post-d:hover .entry-image a:after { background-color: rgba(44,74,126,0.90) !important; }
+.gridlove-cat.gridlove-post-d .entry-image a:after,
+.gridlove-cat.gridlove-post-c .entry-image a:after { background-color: rgba(44,74,126,0.70) !important; }
+.gridlove-cat.gridlove-post-d:hover .entry-image a:after,
+.gridlove-cat.gridlove-post-c:hover .entry-image a:after { background-color: rgba(44,74,126,0.90) !important; }
+
+/* =========================================================================
+   In-article CTA — turns posts into a lead funnel to product/contact pages
+   ========================================================================= */
+.dti-post-cta {
+  margin: 40px 0 8px;
+  padding: 32px;
+  border-radius: var(--dti-radius-md);
+  background: var(--dti-primary-dark);
+  color: #fff;
+}
+.dti-post-cta__kicker {
+  margin: 0 0 8px;
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--dti-accent);
+}
+.dti-post-cta__title {
+  margin: 0 0 8px; color: #fff !important;
+  font-size: 22px; line-height: 1.3; font-weight: 700;
+}
+.dti-post-cta__text {
+  margin: 0 0 20px; font-size: 15px; line-height: 1.6;
+  color: rgba(255,255,255,0.85);
+}
+.dti-post-cta__actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.dti-post-cta__btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 11px 22px; border-radius: var(--dti-radius-cta);
+  font-size: 14px; font-weight: 600; text-decoration: none !important;
+  transition: background .2s var(--dti-ease), color .2s var(--dti-ease);
+}
+.dti-post-cta__btn--accent { background: var(--dti-accent); color: #fff !important; }
+.dti-post-cta__btn--accent:hover { background: var(--dti-accent-dark); }
+.dti-post-cta__btn--primary {
+  background: rgba(255,255,255,0.12); color: #fff !important;
+  border: 1px solid rgba(255,255,255,0.30);
+}
+.dti-post-cta__btn--primary:hover { background: rgba(255,255,255,0.20); }
 
 /* Generic link hover that defaulted to the legacy blue */
 a:hover { color: var(--dti-primary); }

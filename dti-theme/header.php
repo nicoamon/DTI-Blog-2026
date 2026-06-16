@@ -43,10 +43,10 @@
 </header>
 
 <!-- Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-2ZR77N9P7L"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-0ZFWTMD8SL"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
-  gtag('config', 'G-2ZR77N9P7L');
+  gtag('config', 'G-0ZFWTMD8SL');
 </script>
