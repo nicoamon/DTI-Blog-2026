@@ -83,6 +83,23 @@ function dti_blog_thumbnail_perf( $html ) {
 add_filter( 'post_thumbnail_html', 'dti_blog_thumbnail_perf', 20 );
 
 /**
+ * P2 performance — the Gridlove cover/hero image is the LCP element. Load it
+ * eagerly at high priority and mark `skip-lazy` so EWWW does NOT lazy-load it
+ * (lazy-loading the LCP image actively delays LCP).
+ */
+function dti_blog_cover_priority( $attr, $attachment, $size ) {
+	$is_cover = ( is_string( $size ) && strpos( $size, 'gridlove-cover' ) !== false )
+		|| ( isset( $attr['class'] ) && strpos( $attr['class'], 'gridlove-cover' ) !== false );
+	if ( $is_cover ) {
+		$attr['fetchpriority'] = 'high';
+		$attr['loading']       = 'eager';
+		$attr['class']         = trim( ( isset( $attr['class'] ) ? $attr['class'] : '' ) . ' skip-lazy' );
+	}
+	return $attr;
+}
+add_filter( 'wp_get_attachment_image_attributes', 'dti_blog_cover_priority', 20, 3 );
+
+/**
  * P2 performance — drop Contact Form 7 assets on pages with no form.
  * CF7 enqueues its JS + CSS site-wide; on a blog a form is rare, so this removes
  * render-blocking requests from nearly every page.
