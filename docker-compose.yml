@@ -10,6 +10,9 @@ services:
       MYSQL_USER: wordpress
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      # NOTE: the live production DB uses the bl0gd0c_ table prefix (inherited from
+      # the migrated Docotel blog). wp-config.php already carries it in the volume;
+      # declared here so a fresh container regenerates a matching config.
     volumes:
       - db_data:/var/lib/mysql
     command: --max_allowed_packet=512M
@@ -28,6 +31,7 @@ services:
       WORDPRESS_DB_USER: wordpress
       WORDPRESS_DB_PASSWORD: ${MYSQL_PASSWORD}
       WORDPRESS_DB_NAME: wordpress
+      WORDPRESS_TABLE_PREFIX: bl0gd0c_
       # Behind Caddy + Cloudflare: trust X-Forwarded-Proto so WP builds https
       # URLs and avoids redirect loops.
       WORDPRESS_CONFIG_EXTRA: |
@@ -35,6 +39,7 @@ services:
           $$_SERVER['HTTPS'] = 'on';
         }
         define('FS_METHOD', 'direct');
+        define('DISALLOW_FILE_EDIT', true);
     volumes:
       - wp_data:/var/www/html
       - ./uploads.ini:/usr/local/etc/php/conf.d/uploads.ini:ro

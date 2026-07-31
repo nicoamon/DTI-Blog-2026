@@ -18,6 +18,7 @@ services:
         define('WP_HOME','https://dti.amon.id/blog');
         define('WP_SITEURL','https://dti.amon.id/blog');
         define('FS_METHOD','direct');
+        define('DISALLOW_FILE_EDIT', true);
     volumes:
       - wp_staging_data:/var/www/html
       - ./blog-subdir.conf:/etc/apache2/conf-enabled/zz-blog.conf:ro
