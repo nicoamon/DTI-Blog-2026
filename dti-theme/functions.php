@@ -133,6 +133,60 @@ function dti_blog_defer_scripts( $tag, $handle ) {
 add_filter( 'script_loader_tag', 'dti_blog_defer_scripts', 10, 2 );
 
 /**
+ * P2b performance — drop render-blocking assets inherited from Gridlove that the
+ * DTI child theme does not use.
+ *
+ * `gridlove-fonts` loads Cabin + Lato from Google Fonts, but the child theme sets
+ * Inter site-wide (style.css base typography), so those two families never paint
+ * — it is a pure render-blocking external request. Removing it leaves one font
+ * request (Inter) instead of two.
+ */
+function dti_blog_trim_frontend_assets() {
+	if ( is_admin() ) {
+		return;
+	}
+	wp_dequeue_style( 'gridlove-fonts' );
+	wp_deregister_style( 'gridlove-fonts' );
+}
+add_action( 'wp_enqueue_scripts', 'dti_blog_trim_frontend_assets', 100 );
+
+/**
+ * P2b performance — jQuery Migrate is a backward-compat shim for pre-1.9 jQuery
+ * APIs. Nothing on this stack needs it, so we strip it from jQuery's deps to save
+ * a render-blocking request. (Front-end only — the admin/editor may still rely on
+ * it, so we leave it there.)
+ */
+function dti_blog_remove_jquery_migrate( $scripts ) {
+	if ( is_admin() || empty( $scripts->registered['jquery'] ) ) {
+		return;
+	}
+	$scripts->registered['jquery']->deps = array_diff(
+		$scripts->registered['jquery']->deps,
+		array( 'jquery-migrate' )
+	);
+}
+add_action( 'wp_default_scripts', 'dti_blog_remove_jquery_migrate' );
+
+/**
+ * P2b performance — the fonts load from Google. WordPress only emits a
+ * dns-prefetch hint; upgrade fonts.googleapis.com to a full preconnect (starts
+ * the TLS handshake earlier) and add fonts.gstatic.com (where the actual .woff2
+ * files live) which core does not hint at all. gstatic needs crossorigin because
+ * font files are fetched anonymously; the CSS host does not.
+ */
+function dti_blog_resource_hints( $hints, $relation_type ) {
+	if ( 'preconnect' === $relation_type ) {
+		$hints[] = 'https://fonts.googleapis.com';
+		$hints[] = array(
+			'href'        => 'https://fonts.gstatic.com',
+			'crossorigin' => 'anonymous',
+		);
+	}
+	return $hints;
+}
+add_filter( 'wp_resource_hints', 'dti_blog_resource_hints', 10, 2 );
+
+/**
  * Append a DTI product CTA to the end of single blog posts — turns the blog
  * into a lead funnel back to the product/contact pages on the main site.
  */
@@ -150,7 +204,9 @@ function dti_blog_post_cta( $content ) {
 	}
 	return $content;
 }
-add_filter( 'the_content', 'dti_blog_post_cta' );
+// Priority 20 so the CTA is appended AFTER wpautop (priority 10) has run on the
+// post body — otherwise the raw <aside> markup could be wrapped/mangled.
+add_filter( 'the_content', 'dti_blog_post_cta', 20 );
 
 /**
  * 301-redirect old category URLs to their consolidated targets (P3 category

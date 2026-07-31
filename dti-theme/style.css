@@ -4,7 +4,7 @@ Theme URI: https://dtisolution.id/blog
 Description: Child theme of Gridlove that restyles the Docotel/DTI blog to match the new DTI corporate website (dtisolution.id). Provides the DTI header (logo + nav + Contact CTA), the DTI footer, the brand colour tokens, and Inter typography. Design tokens sourced from dti-website tailwind.config.ts.
 Template: gridlove
 Author: DTI
-Version: 1.0.1
+Version: 1.1.0
 */
 
 /* =========================================================================
@@ -55,6 +55,21 @@ h1, h2, h3, h4, h5, h6,
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   color: var(--dti-text);
   letter-spacing: -0.01em;
+}
+
+/* Neutralise Gridlove's Redux inline typography. The child theme removes the
+   Cabin/Lato webfonts (functions.php → dti_blog_trim_frontend_assets), so map the
+   few selectors that still request those families onto Inter — guarantees the
+   font removal causes zero fallback-font regression. body + h1–h6 are already
+   covered above; these are the remaining Gridlove/bbPress ones. */
+.gridlove-main-nav a,
+.gridlove-posts-widget a,
+blockquote,
+thead td,
+.comment-author b,
+#bbpress-forums .bbp-forum-title,
+#bbpress-forums .bbp-topic-permalink {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 a { color: var(--dti-primary); transition: color .2s var(--dti-ease); }

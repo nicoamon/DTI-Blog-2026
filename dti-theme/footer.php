@@ -3,7 +3,9 @@
  * DTI footer — mirrors components/blocks/Footer.tsx from dti-website.
  * Static values match the locked FALLBACK + id.json dictionary.
  */
-$dti_year = date( 'Y' );
+// wp_date() respects the site's configured timezone (date() uses the server's),
+// avoiding a New-Year's-Eve off-by-one in the copyright year.
+$dti_year = function_exists( 'wp_date' ) ? wp_date( 'Y' ) : date( 'Y' );
 ?>
 
 <footer class="dti-footer">
