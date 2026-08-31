@@ -772,3 +772,23 @@ body.archive.category .dti-archive-glyph{
 /* cards whose only category was the current one show no chip — give the title a little
    top breathing room so those cards don't hug the image edge */
 body.archive.category .gridlove-post .box-inner-p > .entry-title:first-child{ margin-top:2px; }
+
+/* ═══ ARCHIVE fix v4 — CSS grid (kill float-based card overlap) 2026-09-01 ═══ */
+/* Gridlove uses a Bootstrap float grid; uneven card heights make the next row's
+   card float against the tall one → cards overlap. A real grid equalizes rows and
+   lets height:100% fill each cell. (Not masonry — masonry is inactive on this layout.) */
+body.archive.category .row.gridlove-posts{
+  display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:30px 28px; margin:0;
+}
+body.archive.category .row.gridlove-posts > [class*="col-"]{
+  width:auto; max-width:none; flex:none; float:none; margin:0; padding:0;
+}
+body.archive.category .row.gridlove-posts > [class*="col-"] > article.gridlove-post{ height:100%; margin:0; }
+body.archive.category .gridlove-posts .gridlove-box{ margin-bottom:0; }
+@media(max-width:1023px) and (min-width:768px){
+  body.archive.category .row.gridlove-posts{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+  body.archive.category .gridlove-posts > [class*="col-"]{ width:auto; }
+}
+@media(max-width:767px){
+  body.archive.category .row.gridlove-posts{ grid-template-columns:1fr; gap:22px; }
+}
