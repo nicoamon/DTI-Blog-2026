@@ -792,3 +792,6 @@ body.archive.category .gridlove-posts .gridlove-box{ margin-bottom:0; }
 @media(max-width:767px){
   body.archive.category .row.gridlove-posts{ grid-template-columns:1fr; gap:22px; }
 }
+
+/* ═══ Load More button — sentence case (was uppercase) 2026-09-01 ═══ */
+body.archive.category .gridlove-load-more a{ text-transform:none; letter-spacing:normal; }
