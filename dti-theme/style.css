@@ -483,3 +483,292 @@ article.gridlove-post-c.gridlove-cat { color: #fff !important; background-color:
 
 /* Generic link hover that defaulted to the legacy blue */
 a:hover { color: var(--dti-primary); }
+
+/* ── FIX 2026-08-06 (Claude) OPSI B: sembunyikan cover slider rusak, pasang HERO BAND custom DTI ── */
+#cover.gridlove-cover-area { display: none !important; }
+.dti-blog-hero{background:linear-gradient(135deg,var(--dti-primary) 0%,var(--dti-primary-dark) 100%);color:#fff;padding:76px 24px;text-align:center}
+.dti-blog-hero__inner{max-width:840px;margin:0 auto}
+.dti-blog-hero__eyebrow{text-transform:uppercase;letter-spacing:.08em;font-size:13px;font-weight:700;color:#F7B5B5;margin:0 0 16px}
+.dti-blog-hero__title{font-family:'Lato',sans-serif;font-size:46px;line-height:1.12;font-weight:700;color:#fff;margin:0 0 18px}
+.dti-blog-hero__tagline{font-size:18px;line-height:1.6;color:rgba(255,255,255,.82);margin:0 auto 34px;max-width:700px}
+.dti-blog-hero__cta{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.dti-blog-hero__btn{display:inline-block;padding:13px 30px;border-radius:8px;font-weight:700;font-size:15px;text-decoration:none;transition:all .2s;border:1px solid transparent}
+.dti-blog-hero__btn--primary{background:var(--dti-accent);color:#fff}
+.dti-blog-hero__btn--primary:hover{background:var(--dti-accent-dark);color:#fff}
+.dti-blog-hero__btn--ghost{background:rgba(255,255,255,.10);color:#fff;border-color:rgba(255,255,255,.35)}
+.dti-blog-hero__btn--ghost:hover{background:rgba(255,255,255,.20);color:#fff}
+@media(max-width:767px){.dti-blog-hero{padding:52px 20px}.dti-blog-hero__title{font-size:32px}.dti-blog-hero__tagline{font-size:16px}}
+/* jarak antara hero band dan konten "Editor's pick" (hero hanya di homepage) */
+.dti-blog-hero{margin-bottom:52px}
+@media(max-width:767px){.dti-blog-hero{margin-bottom:32px}}
+
+/* ── FIX 2026-09-01 (Claude) blog QA ── */
+/* #1 header sticky was z-index:100 → article/slider content overlapped it on scroll */
+.dti-header { z-index: 9990 !important; }
+
+/* #5 "You may also like" related cards — excerpt was clipped mid-line (fixed-height overflow).
+   Clean 3-line clamp with ellipsis instead. */
+.gridlove-related .entry-content {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  max-height: none;
+  text-overflow: ellipsis;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CATEGORY ARCHIVE REDESIGN — 2026-09-01 (Fable spec · Claude impl)
+   "Indeks pustaka": light masthead + disciplined card ledger. Scope: category archives.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Masthead band ── */
+body.archive.category .module-header{
+  position:relative; overflow:hidden;
+  background:var(--dti-surface-light);
+  border-bottom:1px solid var(--dti-border);
+  border-radius:var(--dti-radius-md) var(--dti-radius-md) 0 0;
+  padding:48px 30px 40px;
+  margin:6px 0 44px;
+  display:flex; flex-direction:column;
+}
+body.archive.category .module-header > *{ position:relative; z-index:1; }
+
+/* breadcrumbs (module-actions) → top of the stack */
+body.archive.category .module-title{ display:flex; flex-direction:column; }
+body.archive.category .module-actions{ order:-1; margin:0 0 22px; }
+body.archive.category .module-actions,
+body.archive.category .module-actions a{ font-size:13px; line-height:1.5; }
+body.archive.category .module-actions a{ color:var(--dti-subtle); text-decoration:none; }
+body.archive.category .module-actions a:hover{ color:var(--dti-primary); text-decoration:underline; }
+
+/* eyebrow — "Topik" (pure CSS, same on every category archive) */
+body.archive.category .module-title h1.h2::before{
+  content:'Topik'; display:block;
+  font-size:13px; font-weight:600; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--dti-accent-text); margin:0 0 10px;
+}
+
+/* H1 — category name, all-navy (coral budget spent on eyebrow only) */
+body.archive.category .module-title h1.h2{
+  font-family:'Inter',sans-serif;
+  font-size:clamp(1.8125rem,1.4rem + 1.6vw,2.4375rem);
+  font-weight:700; line-height:1.15; letter-spacing:-.02em;
+  color:var(--dti-primary); margin:0 0 16px;
+}
+
+/* description */
+body.archive.category .module-desc{ max-width:720px; }
+body.archive.category .module-desc p{
+  font-size:17px; line-height:1.65; color:var(--dti-muted); margin:0 0 4px;
+}
+
+/* index line — navy dash + "N artikel" */
+body.archive.category .dti-archive-count{
+  font-size:12px !important; font-weight:600; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--dti-subtle) !important; margin:22px 0 0 !important; line-height:1;
+}
+body.archive.category .dti-archive-count::before{
+  content:''; display:inline-block; width:24px; height:2px;
+  background:var(--dti-primary); margin-right:10px; vertical-align:middle;
+}
+
+/* ── The one risk: ghost chapter glyph ── */
+body.archive.category .dti-archive-glyph{
+  position:absolute; right:-8px; top:50%; transform:translateY(-52%);
+  font-family:'Inter',sans-serif; font-weight:800; line-height:1;
+  font-size:clamp(160px,22vw,260px); letter-spacing:-.04em;
+  color:rgba(44,74,126,.06); pointer-events:none; user-select:none; z-index:0;
+}
+@media(max-width:767px){ body.archive.category .dti-archive-glyph{ display:none; } }
+
+/* ═══ CARD SYSTEM ═══ */
+body.archive.category .gridlove-post-b{
+  height:100%; display:flex; flex-direction:column;
+  background:var(--dti-surface); border:1px solid var(--dti-border);
+  border-radius:var(--dti-radius-md); overflow:hidden;
+  box-shadow:none; transition:transform .2s var(--dti-ease), box-shadow .2s var(--dti-ease), border-color .2s var(--dti-ease);
+}
+/* image 3:2, quiet saturation */
+body.archive.category .gridlove-post-b .entry-image{ margin:0; overflow:hidden; }
+body.archive.category .gridlove-post-b .entry-image img{
+  display:block; width:100%; aspect-ratio:3/2; object-fit:cover;
+  filter:saturate(.9); transition:transform .3s var(--dti-ease), filter .3s var(--dti-ease);
+}
+/* content column */
+body.archive.category .gridlove-post-b .entry-body,
+body.archive.category .gridlove-post-b .gridlove-box-body,
+body.archive.category .gridlove-post-b > .entry-wrap{
+  flex:1; display:flex; flex-direction:column; padding:20px 22px;
+}
+/* chips: static, above title, tightened pill */
+body.archive.category .entry-category{
+  position:static; margin:0 0 10px; padding:0; display:flex; flex-wrap:wrap; gap:6px; background:none;
+}
+body.archive.category .entry-category .gridlove-cat{
+  display:inline-block; padding:5px 12px; border-radius:9999px;
+  font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; line-height:1.5;
+  background:var(--dti-tint); color:var(--dti-primary); text-decoration:none;
+  transition:background .2s var(--dti-ease), color .2s var(--dti-ease);
+}
+body.archive.category .entry-category .gridlove-cat:hover{ background:var(--dti-primary); color:#fff; }
+/* fallback: hide the current-category chip (PHP filter also removes it at data level) */
+body.category-knowledge .gridlove-cat-2,
+body.category-security .gridlove-cat-1466,
+body.category-ai-data .gridlove-cat-1465,
+body.category-digital-signature .gridlove-cat-1448,
+body.category-health-information-system .gridlove-cat-790,
+body.category-produk-solusi .gridlove-cat-1467,
+body.category-perusahaan-berita .gridlove-cat-1468{ display:none !important; }
+
+/* title: 2-line clamp, word-safe, reserved height for row alignment */
+body.archive.category .gridlove-post-b .entry-title{
+  font-size:18px; font-weight:600; line-height:1.4; letter-spacing:-.01em; margin:0 0 12px;
+}
+body.archive.category .gridlove-post-b .entry-title a{
+  color:var(--dti-primary); text-decoration:none;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+  min-height:2.8em;
+}
+body.archive.category .gridlove-post-b .entry-title a:hover{ color:var(--dti-primary-dark); }
+
+/* meta row: hairline rule, pinned to bottom, middot separators */
+body.archive.category .gridlove-post-b .entry-meta{
+  margin-top:auto; padding-top:12px; border-top:1px solid var(--dti-tint);
+  display:flex; align-items:center; gap:0; flex-wrap:wrap;
+}
+body.archive.category .entry-meta .meta-item{ display:inline-flex; align-items:center; font-size:13px; }
+body.archive.category .entry-meta .meta-author{ color:var(--dti-muted); font-weight:500; }
+body.archive.category .entry-meta .meta-date{ color:var(--dti-subtle); font-weight:400; }
+body.archive.category .entry-meta .meta-item img{ width:20px; height:20px; border-radius:50%; border:1px solid var(--dti-border); margin-right:7px; }
+body.archive.category .entry-meta .meta-item + .meta-item::before{
+  content:'·'; margin:0 8px; color:var(--dti-subtle); opacity:.7;
+}
+/* views: negative social proof on a specialist library → hide on archive cards */
+body.archive.category .entry-meta .meta-views{ display:none !important; }
+
+/* hover / focus */
+@media(hover:hover){
+  body.archive.category .gridlove-post-b:hover{
+    transform:translateY(-3px); border-color:var(--dti-primary-light); box-shadow:var(--dti-shadow-medium);
+  }
+  body.archive.category .gridlove-post-b:hover .entry-image img{ transform:scale(1.03); filter:saturate(1); }
+}
+body.archive.category .gridlove-post-b .entry-title a:focus-visible{
+  outline:2px solid var(--dti-primary); outline-offset:2px; border-radius:2px;
+}
+body.archive.category .gridlove-post-b:focus-within{ border-color:var(--dti-primary); }
+@media(prefers-reduced-motion:reduce){
+  body.archive.category .gridlove-post-b,
+  body.archive.category .gridlove-post-b .entry-image img{ transform:none !important; transition:none !important; }
+}
+
+/* ── grid rhythm ── */
+body.archive.category .row.gridlove-posts{ margin-bottom:8px; }
+body.archive.category .gridlove-posts .gridlove-box{ margin-bottom:30px; }
+@media(min-width:768px) and (max-width:1023px){
+  body.archive.category .gridlove-posts > [class*="col-"]{ width:50%; flex:0 0 50%; max-width:50%; }
+}
+
+/* ── pagination ── */
+body.archive.category .gridlove-pagination a,
+body.archive.category .gridlove-pagination .current{
+  min-width:44px; min-height:44px; display:inline-flex; align-items:center; justify-content:center;
+  border-radius:var(--dti-radius-sm); font-size:14px; font-weight:600;
+}
+body.archive.category .gridlove-pagination a{ color:var(--dti-muted); }
+body.archive.category .gridlove-pagination a:hover{ background:var(--dti-tint); color:var(--dti-primary); }
+
+@media(max-width:767px){
+  body.archive.category .module-header{ padding:34px 20px 30px; margin-bottom:30px; }
+  body.archive.category .module-desc p{ font-size:16px; }
+  body.archive.category .gridlove-post-b .entry-body,
+  body.archive.category .gridlove-post-b .gridlove-box-body,
+  body.archive.category .gridlove-post-b > .entry-wrap{ padding:16px 18px; }
+}
+
+/* ═══ ARCHIVE FIX v2 — correct selectors (layout-A: .box-inner-p wrapper, chips in .entry-image) ═══ */
+
+/* masthead: left-aligned ledger posture (Gridlove centers module-title by default) */
+body.archive.category .module-header,
+body.archive.category .module-title,
+body.archive.category .module-desc,
+body.archive.category .module-title h1.h2{ text-align:left; }
+body.archive.category .module-title{ align-items:flex-start; }
+
+/* card container = the article itself */
+body.archive.category article.gridlove-post{
+  height:100%; display:flex; flex-direction:column;
+  background:var(--dti-surface); border:1px solid var(--dti-border);
+  border-radius:var(--dti-radius-md); overflow:hidden; box-shadow:none;
+  transition:transform .2s var(--dti-ease), box-shadow .2s var(--dti-ease), border-color .2s var(--dti-ease);
+}
+/* image 3:2, quiet saturation */
+body.archive.category .gridlove-post .entry-image{ position:relative; margin:0; overflow:hidden; }
+body.archive.category .gridlove-post .entry-image > a{ display:block; }
+body.archive.category .gridlove-post .entry-image img{
+  display:block; width:100%; aspect-ratio:3/2; object-fit:cover;
+  filter:saturate(.9); transition:transform .3s var(--dti-ease), filter .3s var(--dti-ease);
+}
+/* content wrapper */
+body.archive.category .gridlove-post .box-inner-p{
+  flex:1; display:flex; flex-direction:column; padding:18px 22px 20px;
+}
+body.archive.category .gridlove-post .box-inner-ellipsis{ overflow:visible; height:auto; }
+
+/* chips: relocated into .box-inner-p (JS), styled as a single tightened pill above the title */
+body.archive.category .box-inner-p > .entry-category{
+  position:static; order:-1; margin:0 0 10px; padding:0; display:flex; flex-wrap:wrap; gap:6px; background:none;
+}
+/* pre-JS fallback: keep the in-image chip as a clean overlay badge (progressive enhancement) */
+body.archive.category .entry-image .entry-category{
+  position:absolute; left:12px; bottom:12px; top:auto; margin:0; padding:0; display:flex; gap:6px; background:none;
+}
+
+/* title: 2-line clamp, word-safe, reserved height for row alignment */
+body.archive.category .gridlove-post .entry-title{
+  font-size:18px; font-weight:600; line-height:1.4; letter-spacing:-.01em; margin:0 0 12px;
+}
+body.archive.category .gridlove-post .entry-title a{
+  color:var(--dti-primary); text-decoration:none;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:2.7em;
+}
+body.archive.category .gridlove-post .entry-title a:hover{ color:var(--dti-primary-dark); }
+
+/* meta: pinned to bottom, hairline rule */
+body.archive.category .gridlove-post .entry-meta{
+  margin-top:auto; padding-top:12px; border-top:1px solid var(--dti-tint);
+  display:flex; align-items:center; gap:0; flex-wrap:wrap; position:static;
+}
+body.archive.category .gridlove-post .entry-meta .meta-author .coauthors{ display:inline-flex; align-items:center; }
+
+/* hover / focus (correct selector) */
+@media(hover:hover){
+  body.archive.category article.gridlove-post:hover{
+    transform:translateY(-3px); border-color:var(--dti-primary-light); box-shadow:var(--dti-shadow-medium);
+  }
+  body.archive.category article.gridlove-post:hover .entry-image img{ transform:scale(1.03); filter:saturate(1); }
+}
+body.archive.category article.gridlove-post:focus-within{ border-color:var(--dti-primary); }
+@media(prefers-reduced-motion:reduce){
+  body.archive.category article.gridlove-post,
+  body.archive.category .gridlove-post .entry-image img{ transform:none !important; transition:none !important; }
+}
+
+/* Load More → DTI navy button (was unstyled bright blue) */
+body.archive.category .gridlove-load-more{ text-align:center; margin:12px 0 8px; }
+body.archive.category .gridlove-load-more a{
+  display:inline-block; background:var(--dti-primary); color:#fff !important;
+  padding:13px 32px; border-radius:var(--dti-radius-cta); font-weight:600; font-size:15px;
+  text-decoration:none; border:1px solid var(--dti-primary); transition:background .2s var(--dti-ease), border-color .2s var(--dti-ease);
+}
+body.archive.category .gridlove-load-more a:hover{ background:var(--dti-primary-dark); border-color:var(--dti-primary-dark); color:#fff !important; }
+
+/* ═══ ARCHIVE polish v3 — glyph bleeds off right edge, desc width, chip-less card top ═══ */
+body.archive.category .module-desc{ max-width:640px; }
+body.archive.category .dti-archive-glyph{
+  right:-56px; font-size:clamp(190px,24vw,300px); color:rgba(44,74,126,.05);
+}
+/* cards whose only category was the current one show no chip — give the title a little
+   top breathing room so those cards don't hug the image edge */
+body.archive.category .gridlove-post .box-inner-p > .entry-title:first-child{ margin-top:2px; }

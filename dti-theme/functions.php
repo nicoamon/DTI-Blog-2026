@@ -297,3 +297,107 @@ function dti_blog_default_menu() {
 	</ul>
 	<?php
 }
+
+/**
+ * FIX 2026-09-01 (Claude) — hide "0 views" meta.
+ * Owner rule: posts with 0 views should not display the view count at all.
+ * entry-views renders `.meta-views` on every card/single; strip it client-side
+ * when the count is zero (no clean server-side filter in Gridlove's meta parts).
+ */
+function dti_blog_hide_zero_views() {
+	?>
+<script>
+(function(){
+	function hideZero(){
+		document.querySelectorAll('.meta-views').forEach(function(el){
+			var t=(el.textContent||'').replace(/\s+/g,' ').trim();
+			if(/^0\s+views?$/i.test(t)){ el.style.display='none'; }
+		});
+	}
+	if(document.readyState!=='loading'){hideZero();}
+	else{document.addEventListener('DOMContentLoaded',hideZero);}
+})();
+</script>
+	<?php
+}
+add_action( 'wp_footer', 'dti_blog_hide_zero_views', 99 );
+
+/* ═══ CATEGORY ARCHIVE — 2026-09-01 (Fable spec / Claude impl) ═══ */
+
+/**
+ * Strip Gridlove's "Category - " title prefix (translatable string, domain gridlove).
+ * Presentation-only; admin unaffected.
+ */
+function dti_blog_strip_category_prefix( $translated, $text, $domain ) {
+	if ( $domain === 'gridlove' && $text === 'Category - ' ) {
+		return '';
+	}
+	return $translated;
+}
+add_filter( 'gettext', 'dti_blog_strip_category_prefix', 10, 3 );
+
+/**
+ * Chip data-rule on category archives: drop the queried category (redundant on its
+ * own archive) and cap to exactly one classification. Library discipline.
+ */
+function dti_blog_archive_chip_rule( $categories ) {
+	if ( is_admin() || ! is_category() ) {
+		return $categories;
+	}
+	$current = (int) get_queried_object_id();
+	$filtered = array_filter( $categories, function ( $c ) use ( $current ) {
+		return (int) $c->term_id !== $current;
+	} );
+	return array_slice( array_values( $filtered ), 0, 1 );
+}
+add_filter( 'get_the_categories', 'dti_blog_archive_chip_rule' );
+
+/**
+ * Append the article count + the ghost chapter glyph to the category description
+ * (renders inside .module-desc). Count uses the real found_posts; glyph = first
+ * letter of the category name. aria-hidden on the decorative glyph.
+ */
+function dti_blog_archive_desc_extras( $desc ) {
+	if ( is_admin() || ! is_category() ) {
+		return $desc;
+	}
+	if ( is_feed() || doing_action( 'wp_head' ) ) { return $desc; }
+	global $wp_query;
+	$count  = number_format_i18n( (int) $wp_query->found_posts );
+	$letter = function_exists( 'mb_substr' )
+		? mb_substr( single_cat_title( '', false ), 0, 1 )
+		: substr( single_cat_title( '', false ), 0, 1 );
+	$out  = $desc;
+	$out .= '<p class="dti-archive-count">' . $count . ' artikel</p>';
+	$out .= '<span class="dti-archive-glyph" aria-hidden="true">' . esc_html( $letter ) . '</span>';
+	return $out;
+}
+add_filter( 'category_description', 'dti_blog_archive_desc_extras' );
+
+/**
+ * Category archive: move each card's category chip out of the image overlay and
+ * into the content block (above the title), per the DTI archive design spec.
+ * Progressive enhancement — no-JS users still see the chip as an image badge.
+ */
+function dti_blog_relocate_archive_chips() {
+	if ( ! is_category() ) {
+		return;
+	}
+	?>
+<script>
+(function(){
+	function move(){
+		document.querySelectorAll('.archive.category article.gridlove-post').forEach(function(card){
+			var img  = card.querySelector('.entry-image');
+			var cat  = img && img.querySelector('.entry-category');
+			var body = card.querySelector('.box-inner-p');
+			if(cat && body && cat.parentNode !== body){ body.insertBefore(cat, body.firstChild); }
+		});
+	}
+	if(document.readyState!=='loading'){move();}
+	else{document.addEventListener('DOMContentLoaded',move);}
+})();
+</script>
+	<?php
+}
+add_action( 'wp_footer', 'dti_blog_relocate_archive_chips', 98 );
