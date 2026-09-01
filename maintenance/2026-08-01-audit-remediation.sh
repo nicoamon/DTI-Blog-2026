@@ -10,6 +10,14 @@
 #
 # Raw SQL runs through the DB container (the WP image has no mysql client).
 # ALWAYS take a backup first (this script does).
+#
+# 2026-09-02 CONSOLIDATION (Night Shift): merges BOTH hardening rounds that had
+# diverged across branches — a4d2d21 (staging: STDIN sql closes the backtick
+# command-substitution RCE + silent-DROP bug, MYSQL_PWD, backup verification,
+# fail-closed plugin check, identifier allowlist) and 5fc5d41 (main, F5: umask
+# 077 dump, wp "$@", prefix-anchored LIKE, PFX guard, capture-to-var listing).
+# Deliberate choice: NO global `set -e` (benign non-zero constructs exist);
+# every destructive step instead has an explicit fail-closed guard.
 set -uo pipefail
 
 C="${1:?Usage: $0 <wp-container> <db-container> <db-name>}"
@@ -23,7 +31,12 @@ PFX="$(sudo docker exec "$C" wp config get table_prefix --allow-root 2>/dev/null
 
 # Pass args separately (no "$*"/sh -c string splicing) — finding F5-4.
 wp(){ sudo docker exec "$C" wp "$@" --allow-root; }
-sql(){ sudo docker exec "$DBC" sh -c "mariadb -u root -p\"\$MYSQL_ROOT_PASSWORD\" $DBN -N -e \"$1\""; }
+# SQL is piped to the client via STDIN — NOT interpolated into a `sh -c` string
+# and NOT passed via `-e`. Query text (incl. backtick-quoted identifiers) can
+# never be re-parsed by a shell inside the container: closes the DROP-TABLE
+# silent-fail bug and the command-substitution RCE vector (CRITICAL, audit 9/8).
+# Password via MYSQL_PWD (container env), never on argv. DB name is a positional.
+sql(){ printf '%s\n' "$1" | sudo docker exec -i "$DBC" sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mariadb -u root -N "$1"' _ "$DBN"; }
 purge_cache(){ sudo docker exec "$C" sh -c 'find /var/www/html/wp-content/cache/wpo-cache -mindepth 1 -maxdepth 1 -type d ! -name config -exec rm -rf {} + 2>/dev/null; echo purged'; }
 
 echo "Target: WP=$C  DB=$DBC/$DBN  prefix=$PFX"
@@ -31,14 +44,23 @@ echo "This performs DESTRUCTIVE database cleanup. Type YES to proceed:"
 read -r ok; [ "$ok" = "YES" ] || { echo "Aborted."; exit 1; }
 
 echo "==> [0] Backup DB first"
-# Dump contains WP password hashes + plugin secrets; this host has a history of
-# compromise, so keep the artifact owner-only: umask 077 on create + explicit
-# chmod 600 (ops-standard AMON #4, finding F5-3).
-BK="backups/${DBN}-preaudit-$(date +%F-%H%M).sql.gz"
+# Absolute path (independent of cwd) + mkdir -p so the redirect can't silently
+# fail into nowhere. Dump contains WP password hashes + plugin secrets and this
+# host has a history of compromise → owner-only artifact: umask 077 + chmod 600
+# (ops-standard AMON #4, finding F5-3). Then HARD-VERIFY the dump before ANY
+# destructive step: exists, valid gzip, sane size (fail-closed).
+BACKUP_DIR="$(cd "$(dirname "$0")" && pwd)/backups"
+mkdir -p "$BACKUP_DIR"
+BK="$BACKUP_DIR/${DBN}-preaudit-$(date +%F-%H%M).sql.gz"
 ( umask 077
-  sudo docker exec "$DBC" sh -c "mariadb-dump --single-transaction --quick --routines -u root -p\"\$MYSQL_ROOT_PASSWORD\" $DBN" \
+  sudo docker exec "$DBC" sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mariadb-dump --single-transaction --quick --routines -u root "$1"' _ "$DBN" \
     | gzip > "$BK" )
 chmod 600 "$BK"
+if [ ! -s "$BK" ] || ! gzip -t "$BK" 2>/dev/null || [ "$(stat -c%s "$BK")" -lt 1024 ]; then
+  echo "FATAL: backup missing/corrupt ($BK) — aborting before ANY destructive step." >&2
+  exit 1
+fi
+echo "    backup OK: $BK ($(du -h "$BK" | cut -f1))"
 
 # ---- C1: backdoor removal (security) — already done manually; documented here.
 # A 2019 web shell lived at wp-content/.../phpinfo.php (dir literally named "...").
@@ -52,7 +74,9 @@ sql "OPTIMIZE TABLE ${PFX}aiowps_audit_log;"
 
 echo "==> [2] Delete spam comments"
 IDS="$(wp comment list --status=spam --field=ID | tr '\n' ' ')"
-[ -n "${IDS// }" ] && echo "$IDS" | xargs -r sudo docker exec "$C" wp --allow-root comment delete --force
+if [ -n "${IDS// }" ]; then
+  echo "$IDS" | xargs -r sudo docker exec "$C" wp --allow-root comment delete --force
+fi
 
 echo "==> [3] Autoload trim + stale options"
 sql "UPDATE ${PFX}options SET autoload='no' WHERE option_name='ws_menu_editor_pro';"     # admin-only, 108 KB
@@ -62,20 +86,31 @@ echo "==> [4] Expired transients"
 wp transient delete --expired
 
 echo "==> [5] Drop orphaned SEO tables + options (Yoast + AIOSEO fully uninstalled; only Rank Math active)"
-# Safety: only if the plugin folders are truly gone.
-if ! sudo docker exec "$C" sh -c "ls /var/www/html/wp-content/plugins/ | grep -qiE 'yoast|aioseo|wordpress-seo|all-in-one-seo'"; then
-  # Capture the listing first so a failed query (DB down/auth) is caught and
-  # aborts instead of silently iterating zero tables (finding F5-1). Anchor the
-  # LIKE to this install's table prefix so only its own SEO tables match, not
-  # unrelated tables that merely contain the substring (finding F5-5).
+# Fail-CLOSED: POSITIVELY confirm the plugin folders are gone. If the exec/ls
+# itself fails (container down, typo), abort this block — never fall through
+# to DROP on an inconclusive check (finding audit 9/8 MEDIUM).
+if ! plugin_list="$(sudo docker exec "$C" sh -c 'ls /var/www/html/wp-content/plugins/')"; then
+  echo "    SKIPPED — cannot list plugins (exec failed); not touching tables." >&2
+elif printf '%s\n' "$plugin_list" | grep -qiE 'yoast|aioseo|wordpress-seo|all-in-one-seo'; then
+  echo "    SKIPPED — a Yoast/AIOSEO plugin folder is still present."
+else
+  # Capture the listing so a failed query (DB down/auth) aborts instead of
+  # silently iterating zero tables (finding F5-1); LIKE anchored to this
+  # install's prefix (finding F5-5); every name validated against a strict
+  # identifier allowlist before touching SQL — this DB was historically
+  # backdoored (finding audit 9/8 CRITICAL).
   tables="$(sql "SELECT table_name FROM information_schema.tables WHERE table_schema='$DBN' AND (table_name LIKE '${PFX}aioseo%' OR table_name LIKE '${PFX}yoast%');")" \
     || { echo "    ERROR: failed to list orphaned SEO tables — aborting drop." >&2; exit 1; }
   while IFS= read -r t; do
-    [ -n "$t" ] && sql "DROP TABLE IF EXISTS \`$t\`;"
+    [ -z "$t" ] && continue
+    case "$t" in
+      *[!A-Za-z0-9_]*) echo "    WARN skip unsafe table name: $t" >&2; continue ;;
+    esac
+    sql "DROP TABLE IF EXISTS \`$t\`;"
   done <<< "$tables"
-  sql "DELETE FROM ${PFX}options WHERE option_name LIKE 'aioseo%' OR option_name LIKE '_aioseo%' OR option_name LIKE 'wpseo%' OR option_name LIKE 'wp_yoast%' OR option_name LIKE 'yoast%' OR option_name LIKE '%_yoast%';"
-else
-  echo "    SKIPPED — a Yoast/AIOSEO plugin folder is still present."
+  # Escaped underscores ('_' is a single-char LIKE wildcard) + prefix-anchored
+  # patterns so unrelated plugins' options are never deleted (audit 9/8 MEDIUM).
+  sql "DELETE FROM ${PFX}options WHERE option_name LIKE 'aioseo%' OR option_name LIKE '\\_aioseo%' OR option_name LIKE 'wpseo%' OR option_name LIKE 'wp\\_yoast%' OR option_name LIKE 'yoast%' OR option_name LIKE '\\_yoast%';"
 fi
 
 # ---- Security hardening (WordPress + AIOS settings) ----
