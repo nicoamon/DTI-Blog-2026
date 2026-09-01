@@ -1007,3 +1007,7 @@ article.gridlove-post-d:not(.gridlove-cat) .entry-overlay .entry-title a:focus-v
     transform:none !important; transition:none !important;
   }
 }
+
+/* ═══ Homepage: breathing room below sticky header (was too tight) 2026-09-01 ═══ */
+body.home .gridlove-site-content{ padding-top:48px; }
+@media(max-width:767px){ body.home .gridlove-site-content{ padding-top:30px; } }
