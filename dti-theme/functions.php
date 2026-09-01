@@ -332,6 +332,10 @@ function dti_blog_strip_category_prefix( $translated, $text, $domain ) {
 	if ( $domain === 'gridlove' && $text === 'Category - ' ) {
 		return '';
 	}
+	// Pagination button: localize + humanize (blog is Indonesian).
+	if ( $domain === 'gridlove' && $text === 'Load More' ) {
+		return 'Muat lebih banyak';
+	}
 	return $translated;
 }
 add_filter( 'gettext', 'dti_blog_strip_category_prefix', 10, 3 );

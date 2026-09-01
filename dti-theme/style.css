@@ -792,3 +792,218 @@ body.archive.category .gridlove-posts .gridlove-box{ margin-bottom:0; }
 @media(max-width:767px){
   body.archive.category .row.gridlove-posts{ grid-template-columns:1fr; gap:22px; }
 }
+
+/* ═══ Load More button — sentence case (was uppercase) 2026-09-01 ═══ */
+body.archive.category .gridlove-load-more a{ text-transform:none; letter-spacing:normal; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SITE-WIDE CARD SYSTEM v1 — home / search / tags / related (2026-09-01, Fable spec)
+   Fixes: (1) Gridlove fixed-height clipping (.box-inner-ellipsis 70/85/197px
+   + overflow:hidden) and (2) absolutely-positioned .entry-meta (bottom:20/30px)
+   that collide with 3–4 line titles. Replaced by the archive card system:
+   flex column + clamped title/excerpt + meta pinned via margin-top:auto.
+   Scope: every article.gridlove-post EXCEPT .gridlove-cat + .box-single.
+   ORDER-SENSITIVE: keep blocks 1→8 in this order.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── 1. Row mechanics: flex (combo modules use asymmetric spans) */
+.gridlove-module-layout-combo .row.gridlove-posts,
+.gridlove-module-layout-simple .row.gridlove-posts{ display:flex; flex-wrap:wrap; }
+.gridlove-module-layout-combo .row.gridlove-posts > [class*="col-"],
+.gridlove-module-layout-simple .row.gridlove-posts > [class*="col-"]{
+  display:flex; flex-direction:column; float:none;
+}
+.gridlove-module-layout-combo .row.gridlove-posts > [class*="col-"] > .gridlove-box,
+.gridlove-module-layout-simple .row.gridlove-posts > [class*="col-"] > .gridlove-box{ flex:1; }
+
+/* ── 2. Unlock the clip box */
+article.gridlove-post:not(.gridlove-cat):not(.box-single) .box-inner-ellipsis{
+  height:auto !important; max-height:none !important; overflow:visible !important;
+}
+
+/* ── 3. Meta back into flow, pinned by auto margin */
+article.gridlove-post:not(.gridlove-cat):not(.box-single) .entry-meta{
+  position:static !important; margin-top:auto; padding-top:12px;
+  border-top:1px solid var(--dti-tint);
+  display:flex; align-items:center; flex-wrap:wrap;
+}
+article.gridlove-post:not(.gridlove-cat):not(.box-single) .entry-meta .meta-item{
+  display:inline-flex; align-items:center; font-size:13px;
+}
+article.gridlove-post:not(.gridlove-cat):not(.box-single) .entry-meta .meta-author{ color:var(--dti-muted); font-weight:500; }
+article.gridlove-post:not(.gridlove-cat):not(.box-single) .entry-meta .meta-date{ color:var(--dti-subtle); font-weight:400; }
+article.gridlove-post:not(.gridlove-cat):not(.box-single) .entry-meta .meta-item img{
+  width:20px; height:20px; border-radius:50%; border:1px solid var(--dti-border); margin-right:7px;
+}
+article.gridlove-post:not(.gridlove-cat):not(.box-single) .entry-meta .meta-item + .meta-item::before{
+  content:"\00B7"; margin:0 8px; color:var(--dti-subtle);
+}
+article.gridlove-post:not(.gridlove-cat):not(.box-single) .entry-meta .meta-views{ display:none !important; }
+
+/* ── 4. Card container — one family (archive parity) */
+article.gridlove-post:not(.gridlove-cat):not(.box-single){
+  background:var(--dti-surface); border:1px solid var(--dti-border);
+  border-radius:var(--dti-radius-md); overflow:hidden; box-shadow:none;
+  transition:transform .2s var(--dti-ease), box-shadow .2s var(--dti-ease), border-color .2s var(--dti-ease);
+}
+@media(hover:hover){
+  article.gridlove-post:not(.gridlove-cat):not(.box-single):hover{
+    transform:translateY(-3px); border-color:var(--dti-primary-light); box-shadow:var(--dti-shadow-medium);
+  }
+  article.gridlove-post:not(.gridlove-cat):not(.box-single):hover .entry-image img{
+    transform:scale(1.03); filter:saturate(1);
+  }
+}
+article.gridlove-post:not(.gridlove-cat):not(.box-single):focus-within{ border-color:var(--dti-primary); }
+
+/* ── 5. Layouts A + C */
+article.gridlove-post-a:not(.gridlove-cat),
+article.gridlove-post-c:not(.gridlove-cat):not(.box-single){ display:flex; flex-direction:column; }
+article.gridlove-post-a:not(.gridlove-cat) .box-inner-p,
+article.gridlove-post-c:not(.gridlove-cat):not(.box-single) .box-inner-p{
+  flex:1; display:flex; flex-direction:column; padding:18px 22px 20px;
+}
+article.gridlove-post-a:not(.gridlove-cat) .entry-image{ position:relative; margin:0; overflow:hidden; }
+article.gridlove-post-a:not(.gridlove-cat) .entry-image img{
+  display:block; width:100%; height:auto !important; aspect-ratio:3/2; object-fit:cover;
+  filter:saturate(.9); transition:transform .3s var(--dti-ease), filter .3s var(--dti-ease);
+}
+article.gridlove-post-a:not(.gridlove-cat) .entry-category{
+  top:auto; bottom:12px; left:12px; right:auto; width:auto; z-index:3; margin:0;
+}
+article.gridlove-post-a:not(.gridlove-cat) .entry-title,
+article.gridlove-post-c:not(.gridlove-cat):not(.box-single) .entry-title{
+  font-size:18px; font-weight:600; line-height:1.4; letter-spacing:-.01em; margin:0 0 10px;
+}
+article.gridlove-post-a:not(.gridlove-cat) .entry-title a,
+article.gridlove-post-c:not(.gridlove-cat):not(.box-single) .entry-title a{
+  color:var(--dti-primary); text-decoration:none; overflow-wrap:break-word;
+  display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical;
+  overflow:hidden; min-height:4.2em;
+}
+article.gridlove-post-a:not(.gridlove-cat) .entry-title a:hover,
+article.gridlove-post-c:not(.gridlove-cat):not(.box-single) .entry-title a:hover{ color:var(--dti-primary-dark); }
+article.gridlove-post:not(.gridlove-cat):not(.box-single) .box-inner-ellipsis .entry-content{
+  font-size:15px; line-height:1.6; color:var(--dti-muted); margin:0 0 16px;
+  display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;
+}
+article.gridlove-post:not(.gridlove-cat):not(.box-single) .box-inner-ellipsis .entry-content p{ margin:0; }
+
+/* ── 6. Layout B hero ≥580px */
+@media(min-width:580px){
+  article.gridlove-post-b:not(.gridlove-cat):not(.box-single){ display:flex; align-items:stretch; }
+  article.gridlove-post-b:not(.gridlove-cat):not(.box-single) .entry-image{
+    float:none; flex:0 0 50%; width:50%; position:relative; margin:0; overflow:hidden;
+  }
+  article.gridlove-post-b:not(.gridlove-cat):not(.box-single) .entry-image img{
+    width:100%; height:100% !important; min-height:300px; object-fit:cover; display:block;
+    filter:saturate(.9); transition:transform .3s var(--dti-ease), filter .3s var(--dti-ease);
+  }
+  article.gridlove-post-b:not(.gridlove-cat):not(.box-single) .box-col-b{
+    float:none; flex:1; max-width:none; margin:0; padding:22px 26px;
+    display:flex; flex-direction:column;
+  }
+}
+article.gridlove-post-b:not(.gridlove-cat):not(.box-single) .entry-title{
+  font-size:22px; font-weight:600; line-height:1.35; letter-spacing:-.015em; margin:0 0 10px;
+}
+@media(max-width:900px){
+  article.gridlove-post-b:not(.gridlove-cat):not(.box-single) .entry-title{ font-size:19px; }
+}
+article.gridlove-post-b:not(.gridlove-cat):not(.box-single) .entry-title a{
+  color:var(--dti-primary); text-decoration:none;
+  display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;
+}
+article.gridlove-post-b:not(.gridlove-cat):not(.box-single) .entry-title a:hover{ color:var(--dti-primary-dark); }
+
+/* ── 7. Layout D: overlay card */
+article.gridlove-post-d:not(.gridlove-cat){ display:flex; flex-direction:column; position:relative; }
+article.gridlove-post-d:not(.gridlove-cat) .entry-image{ flex:1; position:relative; margin:0; min-height:300px; }
+article.gridlove-post-d:not(.gridlove-cat) .entry-image > a{ position:absolute; inset:0; display:block; }
+article.gridlove-post-d:not(.gridlove-cat) .entry-image img{
+  width:100%; height:100% !important; object-fit:cover; display:block;
+  transition:transform .3s var(--dti-ease);
+}
+.gridlove-post-d .entry-image a:after{
+  background:linear-gradient(to top,
+    rgba(31,54,92,.92) 0%, rgba(31,54,92,.55) 45%,
+    rgba(31,54,92,.12) 75%, rgba(31,54,92,0) 100%) !important;
+}
+@media(hover:hover){
+  .gridlove-post-d:hover .entry-image a:after{
+    background:linear-gradient(to top,
+      rgba(31,54,92,.96) 0%, rgba(31,54,92,.62) 45%,
+      rgba(31,54,92,.16) 75%, rgba(31,54,92,0) 100%) !important;
+  }
+}
+article.gridlove-post-d:not(.gridlove-cat) .entry-overlay{
+  display:flex; flex-direction:column; justify-content:flex-end; padding:18px 20px 16px;
+}
+article.gridlove-post-d:not(.gridlove-cat) .entry-overlay .box-inner-ellipsis{ flex:0 0 auto; }
+article.gridlove-post-d:not(.gridlove-cat) .entry-overlay .entry-category{ margin:0 0 8px; }
+article.gridlove-post-d:not(.gridlove-cat) .entry-overlay .entry-title{
+  font-size:18px; font-weight:600; line-height:1.4; letter-spacing:-.01em; margin:0;
+}
+article.gridlove-post-d:not(.gridlove-cat) .entry-overlay .entry-title a{
+  color:#fff; display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical;
+  overflow:hidden; min-height:0; text-shadow:0 1px 3px rgba(17,24,39,.35);
+}
+article.gridlove-post-d:not(.gridlove-cat) .entry-overlay .entry-meta{
+  margin-top:12px; padding-top:10px; border-top:1px solid rgba(255,255,255,.18);
+}
+article.gridlove-post-d:not(.gridlove-cat) .entry-overlay .entry-meta .meta-item,
+article.gridlove-post-d:not(.gridlove-cat) .entry-overlay .entry-meta a{ color:rgba(255,255,255,.92); }
+article.gridlove-post-d:not(.gridlove-cat) .entry-overlay .entry-meta .meta-item img{
+  border-color:rgba(255,255,255,.4);
+}
+
+/* ── 8. Layout B at ≤579px: overlay treatment */
+@media(max-width:579px){
+  article.gridlove-post-b:not(.gridlove-cat):not(.box-single){ position:relative; }
+  article.gridlove-post-b:not(.gridlove-cat):not(.box-single) .entry-image{ margin:0; }
+  article.gridlove-post-b:not(.gridlove-cat):not(.box-single) .entry-image img{
+    width:100%; min-height:280px; object-fit:cover; filter:none;
+  }
+  article.gridlove-post-b:not(.gridlove-cat):not(.box-single) .entry-image a:after{
+    background:linear-gradient(to top,
+      rgba(31,54,92,.92) 0%, rgba(31,54,92,.55) 45%,
+      rgba(31,54,92,.12) 75%, rgba(31,54,92,0) 100%) !important;
+  }
+  article.gridlove-post-b:not(.gridlove-cat):not(.box-single) .entry-sm-overlay{
+    display:flex; flex-direction:column; justify-content:flex-end; padding:16px 18px;
+  }
+  article.gridlove-post-b:not(.gridlove-cat):not(.box-single) .entry-sm-overlay .entry-content{ display:none; }
+  article.gridlove-post-b:not(.gridlove-cat):not(.box-single) .entry-sm-overlay .entry-title{
+    font-size:18px; line-height:1.4;
+  }
+  article.gridlove-post-b:not(.gridlove-cat):not(.box-single) .entry-sm-overlay .entry-title a{
+    color:#fff; -webkit-line-clamp:3; text-shadow:0 1px 3px rgba(17,24,39,.35);
+  }
+  article.gridlove-post-b:not(.gridlove-cat):not(.box-single) .entry-sm-overlay .entry-meta{
+    margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,.18);
+  }
+  article.gridlove-post-b:not(.gridlove-cat):not(.box-single) .entry-sm-overlay .entry-meta .meta-item,
+  article.gridlove-post-b:not(.gridlove-cat):not(.box-single) .entry-sm-overlay .entry-meta a{
+    color:rgba(255,255,255,.92);
+  }
+  article.gridlove-post-b:not(.gridlove-cat):not(.box-single) .entry-sm-overlay .entry-meta .meta-item img{
+    border-color:rgba(255,255,255,.4);
+  }
+}
+
+/* ── 9. Focus + reduced motion */
+article.gridlove-post:not(.gridlove-cat):not(.box-single) .entry-title a:focus-visible{
+  outline:2px solid var(--dti-primary); outline-offset:2px; border-radius:2px;
+}
+article.gridlove-post-d:not(.gridlove-cat) .entry-overlay .entry-title a:focus-visible{ outline-color:#fff; }
+@media(max-width:579px){
+  article.gridlove-post-b:not(.gridlove-cat):not(.box-single) .entry-sm-overlay .entry-title a:focus-visible{
+    outline-color:#fff;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  article.gridlove-post:not(.gridlove-cat):not(.box-single),
+  article.gridlove-post:not(.gridlove-cat):not(.box-single) .entry-image img{
+    transform:none !important; transition:none !important;
+  }
+}
