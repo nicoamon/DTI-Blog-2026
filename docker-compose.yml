@@ -39,7 +39,7 @@ services:
           $$_SERVER['HTTPS'] = 'on';
         }
         define('FS_METHOD', 'direct');
-        define('DISALLOW_FILE_EDIT', true);
+        defined('DISALLOW_FILE_EDIT') || define('DISALLOW_FILE_EDIT', true);
     volumes:
       - wp_data:/var/www/html
       - ./uploads.ini:/usr/local/etc/php/conf.d/uploads.ini:ro
