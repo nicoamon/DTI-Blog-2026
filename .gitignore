@@ -1,5 +1,6 @@
 # Secrets
 .env
+.env.bak*
 .staging-admin-pass
 *.pem
 
