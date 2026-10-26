@@ -464,3 +464,64 @@ body.dti-lb-lock{overflow:hidden}
 	<?php
 }
 add_action( 'wp_footer', 'dti_blog_image_lightbox', 97 );
+
+/**
+ * GEO-01 (Nico 2026-10-26): one organization entity across website + blog.
+ *
+ * Rank Math emits its own Organization with @id "<blog>/#organization", name
+ * "Docotel" and Local-SEO hours. AI assistants merge facts per entity, so the
+ * blog must point at the SAME entity the website (Next.js) publishes:
+ * "<origin>/#organization" — PT Docotel Teknologi Informasi / DTI. Origin is
+ * derived from home_url() so staging (dti.amon.id) and prod (dtisolution.id)
+ * each point at their own website.
+ */
+function dti_blog_unified_org_jsonld( $data, $jsonld ) {
+	$parts   = wp_parse_url( home_url() );
+	$origin  = $parts['scheme'] . '://' . $parts['host'];
+	$org_id  = $origin . '/#organization';
+	$old_ids = array( home_url( '/#organization' ), trailingslashit( home_url() ) . '#organization' );
+
+	$org = array(
+		'@type'         => 'Organization',
+		'@id'           => $org_id,
+		'name'          => 'PT Docotel Teknologi Informasi',
+		'legalName'     => 'PT Docotel Teknologi Informasi',
+		'alternateName' => 'DTI',
+		'url'           => $origin,
+		'logo'          => array( '@type' => 'ImageObject', 'url' => $origin . '/logos/dti-logo.png' ),
+		'foundingDate'  => '2014',
+		'sameAs'        => array( 'https://www.linkedin.com/company/dtinformasi/', 'https://www.instagram.com/dti.solution/' ),
+	);
+
+	// Re-point every reference to Rank Math's blog org at the website org.
+	$repoint = function ( $node ) use ( &$repoint, $old_ids, $org_id ) {
+		if ( is_array( $node ) ) {
+			foreach ( $node as $k => $v ) {
+				if ( '@id' === $k && is_string( $v ) && in_array( $v, $old_ids, true ) ) {
+					$node[ $k ] = $org_id;
+				} else {
+					$node[ $k ] = $repoint( $v );
+				}
+			}
+		}
+		return $node;
+	};
+	$data = $repoint( $data );
+
+	// Replace the Organization entity itself (Rank Math keys it as 'publisher').
+	foreach ( $data as $key => $entity ) {
+		if ( ! is_array( $entity ) || empty( $entity['@type'] ) ) {
+			continue;
+		}
+		$types = (array) $entity['@type'];
+		if ( array_intersect( $types, array( 'Organization', 'Corporation', 'LocalBusiness', 'Website' ) ) && ( ( $entity['@id'] ?? '' ) === $org_id ) ) {
+			$data[ $key ] = $org;
+		}
+		if ( in_array( 'WebSite', $types, true ) ) {
+			$data[ $key ]['name']      = 'Blog DTI';
+			$data[ $key ]['publisher'] = array( '@id' => $org_id );
+		}
+	}
+	return $data;
+}
+add_filter( 'rank_math/json_ld', 'dti_blog_unified_org_jsonld', 99, 2 );
