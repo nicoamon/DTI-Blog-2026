@@ -1011,3 +1011,10 @@ article.gridlove-post-d:not(.gridlove-cat) .entry-overlay .entry-title a:focus-v
 /* ═══ Homepage: breathing room below sticky header (was too tight) 2026-09-01 ═══ */
 body.home .gridlove-site-content{ padding-top:48px; }
 @media(max-width:767px){ body.home .gridlove-site-content{ padding-top:30px; } }
+
+/* ═══ Single post: card no longer slides under the sticky header 2026-10-27 ═══
+   Gridlove single layout 7 pulls the article card up 75px to overlap a cover
+   band. Our sticky .dti-header sits in that space, so the card top and the H1
+   ended up underneath the header (worst on mobile). Give the card its own room. */
+.gridlove-single-layout-7 { margin-top: 32px !important; }
+@media (max-width: 767px) { .gridlove-single-layout-7 { margin-top: 16px !important; } }
