@@ -1,0 +1,61 @@
+<div class="dti-snippet-answer" style="margin:0 0 24px;padding:16px 20px;border-left:4px solid #E85A5A;background:#fdf6f6;border-radius:6px"><strong>Jawaban singkat:</strong> UU PDP (No. 27/2022) mewajibkan pengendali data menghapus dan memusnahkan data pribadi ketika masa retensinya berakhir, tujuannya sudah tercapai, pemilik data memintanya, atau data diperoleh secara melawan hukum. Pemusnahan harus membuat data tidak dapat dipulihkan, dan pemilik data wajib diberi tahu. Sekadar menghapus atau memformat tidak memenuhi syarat itu.</div>
+<p>Undang-Undang Pelindungan Data Pribadi (UU PDP No. 27 Tahun 2022) lebih dikenal karena aturannya soal persetujuan dan pemrosesan data. Kewajiban di ujung siklus hidup data justru sering luput: organisasi wajib <strong>menghapus</strong> dan <strong>memusnahkan</strong> data pribadi begitu data itu tidak lagi boleh disimpan. Sejak masa transisi dua tahun berakhir pada Oktober 2024, kewajiban ini berlaku penuh untuk bank, rumah sakit, perusahaan pembiayaan, dan setiap organisasi lain yang menyimpan data pelanggan atau karyawan.</p>
+<p>Konsekuensinya teknis, bukan hanya administratif. Data pribadi tidak hanya tinggal di aplikasi. Ia ada di hard disk server lama, SSD laptop yang dipensiunkan, tape backup di gudang arsip, dan perangkat yang dikembalikan ke vendor sewa. Kewajiban pemusnahan menjangkau semua media itu.</p>
+
+<h2>Kapan data pribadi wajib dihapus dan dimusnahkan?</h2>
+<p>UU PDP mengatur dua tindakan dalam pasal yang berbeda. Pada pokoknya, <strong>Pasal 43</strong> mengatur <strong>penghapusan</strong> dan <strong>Pasal 44</strong> mengatur <strong>pemusnahan</strong>. Pemicunya antara lain:</p>
+<ul>
+<li>Data pribadi tidak lagi diperlukan untuk mencapai tujuan pemrosesannya;</li>
+<li>Masa retensinya telah habis, sesuai jadwal retensi yang berlaku;</li>
+<li>Pemilik data (subjek data) menarik persetujuan atau meminta datanya dihapus atau dimusnahkan;</li>
+<li>Data diperoleh atau diproses dengan cara melawan hukum.</li>
+</ul>
+<p>Ada pengecualian penting: data yang masih berkaitan dengan proses hukum yang berjalan, atau yang wajib disimpan menurut peraturan lain, tidak boleh dimusnahkan lebih dulu. Contohnya rekam medis elektronik, yang menurut Permenkes 24/2022 disimpan sekurang-kurangnya 25 tahun sejak kunjungan terakhir pasien. Jadwal retensi adalah dokumen pertama yang perlu dirapikan sebelum bicara metode.</p>
+<p>Setelah penghapusan atau pemusnahan dilakukan, <strong>Pasal 45</strong> mewajibkan pengendali data memberi tahu subjek data. Artinya organisasi perlu tahu persis data siapa yang dimusnahkan, kapan, dan dari media apa.</p>
+
+<h2>Apa beda penghapusan dan pemusnahan?</h2>
+<p><strong>Penghapusan</strong> menghilangkan data dari sistem yang aktif, sehingga tidak lagi dapat diakses atau diproses. <strong>Pemusnahan</strong> melangkah lebih jauh: data harus tidak dapat dipulihkan, termasuk sisa yang tertinggal di media penyimpanan fisiknya. Perbedaannya paling terasa ketika perangkat akan di-<em>decommission</em>, dijual, didonasikan, atau dikembalikan ke vendor. Pada titik itu, pemusnahan yang benar berarti sanitasi medianya, bukan sekadar menghapus di level sistem operasi.</p>
+<figure style="margin:20px 0"><img src="https://dtisolution.id/blog/wp-content/uploads/2026/07/sem-0300-hdd.jpg" alt="Pemusnahan media penyimpanan data pribadi sesuai UU PDP" style="max-width:100%;height:auto;border-radius:8px" /><figcaption style="font-size:13px;color:#5B6B85;margin-top:6px">Pemusnahan media penyimpanan memastikan data pribadi tidak dapat dipulihkan, bagian dari kepatuhan UU PDP.</figcaption></figure>
+
+<h2>Apakah UU PDP mewajibkan hard disk dihancurkan?</h2>
+<p>Tidak secara harfiah. UU PDP tidak menetapkan metode teknis tertentu. Yang diwajibkan adalah hasilnya: data tidak dapat dipulihkan. Metode yang dapat dipertanggungjawabkan mengacu pada standar seperti <strong>NIST SP 800-88 Rev. 2</strong> dan <strong>IEEE 2883</strong>, yang membagi sanitasi menjadi tiga tingkat (Clear, Purge, Destroy) dan memilih metodenya menurut jenis media.</p>
+<table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:15px">
+<thead><tr style="background:#2C4A7E;color:#fff"><th style="padding:10px;text-align:left">Jenis media</th><th style="padding:10px;text-align:left">Metode yang tepat</th><th style="padding:10px;text-align:left">Catatan</th></tr></thead>
+<tbody>
+<tr style="border-bottom:1px solid #dfe4ec"><td style="padding:10px">HDD (hard disk magnetik)</td><td style="padding:10px">Degaussing, lalu penghancuran fisik bila data sangat sensitif</td><td style="padding:10px">Drive tidak bisa dipakai lagi setelah degauss</td></tr>
+<tr style="border-bottom:1px solid #dfe4ec"><td style="padding:10px">SSD, flashdisk, kartu memori</td><td style="padding:10px">Crypto-erase terverifikasi atau shredder khusus SSD</td><td style="padding:10px">Degaussing tidak berpengaruh pada SSD</td></tr>
+<tr style="border-bottom:1px solid #dfe4ec"><td style="padding:10px">Tape backup (LTO/DLT)</td><td style="padding:10px">Degaussing atau penghancuran fisik</td><td style="padding:10px">Sering terlupakan di gudang arsip</td></tr>
+<tr><td style="padding:10px">Perangkat yang dipakai ulang di internal</td><td style="padding:10px">Penimpaan data terverifikasi (Clear)</td><td style="padding:10px">Tidak untuk perangkat yang keluar organisasi</td></tr>
+</tbody>
+</table>
+<p>Penghancuran fisik adalah cara paling kuat dan paling mudah dibuktikan, sehingga sering dipilih untuk data nasabah dan rekam medis. Tetapi ia bukan satu-satunya cara yang sah.</p>
+
+<h2>Bukti apa yang perlu disimpan?</h2>
+<p>Pemusnahan yang tidak terdokumentasi sulit dipertahankan saat audit atau pemeriksaan. Minimal, simpan:</p>
+<ul>
+<li><strong>Jadwal retensi</strong> yang menjelaskan kapan setiap kategori data wajib dimusnahkan;</li>
+<li><strong>Inventaris media</strong> per nomor seri, termasuk asal perangkatnya;</li>
+<li><strong>Berita Acara Pemusnahan</strong> per nomor seri: metode, standar rujukan, tanggal, lokasi, saksi, dan tanda tangan;</li>
+<li><strong>Catatan rantai pengawasan</strong> (chain of custody) bila media dipindahkan sebelum dimusnahkan;</li>
+<li><strong>Bukti pemberitahuan</strong> kepada subjek data sesuai Pasal 45.</li>
+</ul>
+<p>Untuk organisasi yang juga diaudit ISO/IEC 27001:2022, dokumen yang sama menjadi bukti untuk kontrol Annex A 7.10 (media penyimpanan), 7.14 (pembuangan dan penggunaan ulang perangkat secara aman), dan 8.10 (penghapusan informasi).</p>
+
+<h2>Apa sanksinya bila tidak dipatuhi?</h2>
+<p>Pasal 57 UU PDP mengatur sanksi administratif bertingkat: peringatan tertulis, penghentian sementara kegiatan pemrosesan data, penghapusan atau pemusnahan data pribadi, hingga denda administratif sampai 2% dari pendapatan tahunan. Kebocoran dari perangkat bekas juga bisa memicu kewajiban pemberitahuan kegagalan pelindungan data. Pembahasan lebih rinci ada di artikel <a href="https://dtisolution.id/blog/sanksi-uu-pdp-bukti-pemusnahan-data/">sanksi UU PDP dan bukti pemusnahan data</a>.</p>
+
+<h2>Langkah praktis untuk memulai</h2>
+<ol>
+<li>Rapikan jadwal retensi per kategori data, termasuk pengecualian dari regulasi sektoral (OJK, Kementerian Kesehatan, kearsipan).</li>
+<li>Data media yang sudah tidak dipakai: server lama, laptop, tape, perangkat sewa yang akan dikembalikan.</li>
+<li>Tentukan metode per jenis media dan tingkat sensitivitas, mengacu pada NIST SP 800-88 Rev. 2.</li>
+<li>Laksanakan pemusnahan dengan saksi, terbitkan Berita Acara per nomor seri, lalu kirim pemberitahuan ke subjek data bila diwajibkan.</li>
+</ol>
+
+<h3>Pertanyaan yang sering diajukan</h3>
+<p><strong>Apakah menghapus file memenuhi kewajiban UU PDP?</strong> Umumnya tidak. File yang dihapus atau drive yang diformat masih dapat dipulihkan dengan perangkat lunak recovery biasa. Kewajiban pemusnahan menuntut data tidak dapat dipulihkan.</p>
+<p><strong>Apakah kewajiban ini berlaku untuk data di backup dan tape lama?</strong> Ya. Kewajiban melekat pada data pribadinya, di mana pun data itu tersimpan. Backup dan tape sering menjadi titik buta karena jarang diinventaris.</p>
+<p><strong>Apakah perlu bukti pemusnahan?</strong> Sangat disarankan. Berita Acara Pemusnahan dan catatan chain of custody adalah bukti kepatuhan yang akan dicari auditor dan regulator.</p>
+<p><strong>Bolehkah pemusnahan diserahkan ke pihak ketiga?</strong> Boleh, tetapi tanggung jawab tetap pada pengendali data. Pastikan vendor memakai metode sesuai media, bekerja dengan saksi dari pihak Anda, dan menerbitkan bukti per nomor seri.</p>
+<p><em>Catatan: artikel ini panduan umum, bukan nasihat hukum. Untuk kasus spesifik, konsultasikan dengan penasihat hukum Anda.</em></p>
+<div class="dti-product-cta" style="margin:28px 0;padding:18px 20px;border-left:4px solid #2C4A7E;background:#f4f6fa;border-radius:6px"><strong>Perlu memusnahkan data pribadi sesuai UU PDP?</strong><br>DTI menyediakan <a href="https://dtisolution.id/id/produk/data-sanitization"><strong>jasa pemusnahan data tersertifikasi</strong></a> di seluruh Indonesia.</div>
