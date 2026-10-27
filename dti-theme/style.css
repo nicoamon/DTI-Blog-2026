@@ -1018,3 +1018,26 @@ body.home .gridlove-site-content{ padding-top:48px; }
    ended up underneath the header (worst on mobile). Give the card its own room. */
 .gridlove-single-layout-7 { margin-top: 32px !important; }
 @media (max-width: 767px) { .gridlove-single-layout-7 { margin-top: 16px !important; } }
+/* ═══ Share buttons — DTI restyle 2026-10-27 ═══
+   Gridlove paints each button in its network colour; on mobile our navy link
+   colour also leaked onto the icons (navy on Facebook blue ≈ 1.2:1, unreadable).
+   One quiet, on-brand style instead: white tile, hairline border, navy icon
+   (≈9:1); hover/focus fills navy with a white icon. */
+.gridlove-share a,
+.gridlove-share-wrapper .gridlove-share a {
+  background: #fff !important;
+  border: 1px solid #CBD2DC !important;
+  color: var(--dti-primary, #2C4A7E) !important;
+  border-radius: 8px !important;
+  opacity: 1 !important;
+  transition: background-color .15s ease, color .15s ease, border-color .15s ease;
+}
+.gridlove-share a i { color: inherit !important; }
+html body .gridlove-share a:hover,
+html body .gridlove-share a:focus-visible {
+  opacity: 1 !important;
+  background: var(--dti-primary, #2C4A7E) !important;
+  border-color: var(--dti-primary, #2C4A7E) !important;
+  color: #fff !important;
+}
+.gridlove-share a:focus-visible { outline: 2px solid var(--dti-accent, #E85A5A); outline-offset: 2px; }

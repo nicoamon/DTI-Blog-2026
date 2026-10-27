@@ -525,3 +525,33 @@ function dti_blog_unified_org_jsonld( $data, $jsonld ) {
 	return $data;
 }
 add_filter( 'rank_math/json_ld', 'dti_blog_unified_org_jsonld', 99, 2 );
+
+/**
+ * 2026-10-27 (Claude) — accessible names for the icon-only share buttons.
+ * Gridlove renders <a><i class="fa fa-…"></i></a> with no text, so screen
+ * readers announce an empty link. Name each one by its network class.
+ */
+function dti_blog_share_labels() {
+	if ( ! is_singular( 'post' ) ) {
+		return;
+	}
+	?>
+<script>
+(function(){
+	var names={facebook:'Facebook',twitter:'X (Twitter)',reddit:'Reddit',pinterest:'Pinterest',linkedin:'LinkedIn',whatsapp:'WhatsApp',mailto:'email',email:'email'};
+	function label(){
+		document.querySelectorAll('.gridlove-share a').forEach(function(a){
+			if(a.getAttribute('aria-label')){return;}
+			var m=(a.className||'').match(/gridlove-(facebook|twitter|reddit|pinterest|linkedin|whatsapp|mailto|email)/);
+			if(!m){return;}
+			var t=m[1]==='mailto'||m[1]==='email'?'Bagikan lewat email':'Bagikan ke '+names[m[1]];
+			a.setAttribute('aria-label',t); a.setAttribute('title',t);
+		});
+	}
+	if(document.readyState!=='loading'){label();}
+	else{document.addEventListener('DOMContentLoaded',label);}
+})();
+</script>
+	<?php
+}
+add_action( 'wp_footer', 'dti_blog_share_labels', 96 );
