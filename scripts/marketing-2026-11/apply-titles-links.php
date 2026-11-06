@@ -25,5 +25,9 @@ else {
   $endPara = $m[1][1] + strlen($m[1][0]);
   $ins = "\r\n\r\nMenghapus file atau memformat drive tidak menghilangkan datanya — sisa magnetik dan blok SSD masih bisa dipulihkan. Untuk perangkat yang akan dibuang, dijual, atau dikembalikan ke vendor, organisasi biasanya memakai <strong><a href=\"https://dtisolution.id/id/produk/data-sanitization\">layanan pemusnahan data tersertifikasi</a></strong> — degaussing, penghancuran fisik, atau crypto-erase — lengkap dengan berita acara dan sertifikat pemusnahan sebagai bukti audit.";
   $log('4805 insert after paragraph: ' . substr($m[1][0], 0, 90) . '…');
-  if (!$dry) wp_update_post(['ID' => 4805, 'post_content' => substr($c, 0, $endPara) . $ins . substr($c, $endPara)]);
+  if (!$dry) {
+    $r = wp_update_post(['ID' => 4805, 'post_content' => substr($c, 0, $endPara) . $ins . substr($c, $endPara)], true);
+    if (is_wp_error($r) || !$r) WP_CLI::warning('4805: update failed — ' . (is_wp_error($r) ? $r->get_error_message() : 'returned 0'));
+    else WP_CLI::success('4805 updated');
+  }
 }
