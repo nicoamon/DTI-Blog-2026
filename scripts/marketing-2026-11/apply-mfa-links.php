@@ -18,6 +18,9 @@ foreach ($plan as $id => $cfg) {
   $p = get_post($id); if (!$p) { $log("$id missing"); continue; }
   $c = $p->post_content;
   if (strpos($c, '/id/solusi/mfa-tahan-phishing-bank') !== false) { $log("$id already links"); continue; }
+  // Insertion offsets assume classic-editor HTML. In block content a raw <p>
+  // would land between <!-- wp:… --> comments and break the block, so skip.
+  if (has_blocks($c)) { WP_CLI::warning("$id: block (Gutenberg) content — skipped, insert manually in the editor"); continue; }
   $pos = false;
   if (isset($cfg['before_heading'])) {
     if (preg_match('/<h[23][^>]*>\s*' . preg_quote($cfg['before_heading'], '/') . '/u', $c, $m, PREG_OFFSET_CAPTURE)) $pos = $m[0][1];
