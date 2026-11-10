@@ -26,7 +26,7 @@ foreach ($plan as $id => $cfg) {
   if (isset($cfg['before_heading'])) {
     if (preg_match('/<h[23][^>]*>\s*' . preg_quote($cfg['before_heading'], '/') . '/u', $c, $m, PREG_OFFSET_CAPTURE)) $pos = $m[0][1];
   } else {
-    if (preg_match_all('/<p[^>]*>.*?<\/p>/su', $c, $ms, PREG_OFFSET_CAPTURE)) {
+    if (preg_match_all('/<p(?:\s[^>]*)?>.*?<\/p>/su', $c, $ms, PREG_OFFSET_CAPTURE)) {
       foreach ($ms[0] as [$txt, $off]) { if (preg_match($cfg['after_first_p_matching'], wp_strip_all_tags($txt))) { $pos = $off + strlen($txt); break; } }
     }
   }
