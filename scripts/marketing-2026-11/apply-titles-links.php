@@ -22,6 +22,7 @@ foreach ($titles as $id => [$t, $d]) {
 // 453da9ed4f — internal link in 4805
 $p = get_post(4805); $c = $p->post_content;
 if (strpos($c, '/id/produk/data-sanitization') !== false) { $log('4805 already links to data-sanitization'); }
+elseif (has_blocks($c)) { WP_CLI::warning('4805: block (Gutenberg) content — skipped, insert manually in the editor'); }
 else {
   // Insert after the FIRST paragraph that follows the "Pentingnya Penghapusan…" heading.
   // Content may use \r\n line endings, so match with a regex instead of byte offsets.
