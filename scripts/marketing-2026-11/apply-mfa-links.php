@@ -38,6 +38,12 @@ foreach ($plan as $id => $cfg) {
   // characters — byte substr() could split a UTF-8 char or land inside a tag.
   $ctx = trim(wp_strip_all_tags(substr($c, 0, $pos)));
   $log("$id {$p->post_name}: insert at …" . mb_substr($ctx, -70));
+  if ($dry) continue;
+  // Snapshot the old content once, for rollback independent of revisions.
+  // wp_slash: update_post_meta() unslashes its value.
+  if (!metadata_exists('post', $id, '_dti_prev_content_p6')) update_post_meta($id, '_dti_prev_content_p6', wp_slash($c));
   // wp_slash: wp_update_post() unslashes its input — without it every backslash in the post is lost.
-  if (!$dry) wp_update_post(wp_slash(['ID' => $id, 'post_content' => substr($c, 0, $pos) . "\n" . $cfg['html'] . "\n" . substr($c, $pos)]));
+  $r = wp_update_post(wp_slash(['ID' => $id, 'post_content' => substr($c, 0, $pos) . "\n" . $cfg['html'] . "\n" . substr($c, $pos)]), true);
+  if (is_wp_error($r) || !$r) { WP_CLI::warning("$id: update failed — " . (is_wp_error($r) ? $r->get_error_message() : 'returned 0')); continue; }
+  WP_CLI::success("$id updated");
 }
