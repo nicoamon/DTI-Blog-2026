@@ -486,10 +486,10 @@ function dti_blog_unified_org_jsonld( $data, $jsonld ) {
 		'@id'           => $org_id,
 		'name'          => 'PT Docotel Teknologi Informasi',
 		'legalName'     => 'PT Docotel Teknologi Informasi',
-		'alternateName' => 'DTI',
+		'alternateName' => array( 'DTI', 'DTI Solution' ), // brand identity C (matches dtisolution.id)
 		'url'           => $origin,
 		'logo'          => array( '@type' => 'ImageObject', 'url' => $origin . '/logos/dti-logo.png' ),
-		'foundingDate'  => '2014',
+		'foundingDate'  => '2016-05-04', // SK AHU-0022502.AH.01.01.Tahun 2016 — Nico 12 Nov 2026
 		'sameAs'        => array( 'https://www.linkedin.com/company/dtinformasi/', 'https://www.instagram.com/dti.solution/' ),
 	);
 
