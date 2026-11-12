@@ -31,8 +31,10 @@ foreach ($plan as $id => $cfg) {
     }
   }
   if ($pos === false) { WP_CLI::warning("$id: insertion point not found — skipped"); continue; }
-  $ctx = trim(wp_strip_all_tags(substr($c, max(0, $pos - 120), 120)));
-  $log("$id {$p->post_name}: insert at …" . substr($ctx, -70));
+  // Strip tags on the whole prefix ($pos is always a tag boundary), then cut by
+  // characters — byte substr() could split a UTF-8 char or land inside a tag.
+  $ctx = trim(wp_strip_all_tags(substr($c, 0, $pos)));
+  $log("$id {$p->post_name}: insert at …" . mb_substr($ctx, -70));
   // wp_slash: wp_update_post() unslashes its input — without it every backslash in the post is lost.
   if (!$dry) wp_update_post(wp_slash(['ID' => $id, 'post_content' => substr($c, 0, $pos) . "\n" . $cfg['html'] . "\n" . substr($c, $pos)]));
 }
