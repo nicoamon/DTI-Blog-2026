@@ -1,4 +1,5 @@
 <?php
+defined('WP_CLI') && WP_CLI || exit; // WP-CLI only — never runnable over HTTP if scripts/ is ever copied to a webroot
 /** agentic-marketing 9434b24cc1 (title/meta test) + 453da9ed4f (internal link). Idempotent. wp eval-file … [dry] */
 $dry = in_array('dry', $args ?? [], true);
 $log = fn($m) => WP_CLI::log(($dry ? '[dry] ' : '') . $m);
