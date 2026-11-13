@@ -5,7 +5,7 @@ $log = fn($m) => WP_CLI::log(($dry ? '[dry] ' : '') . $m);
 // Write mode must run as a user with unfiltered_html, otherwise kses
 // (content_save_pre) silently strips embeds/attributes from the WHOLE post:
 //   wp eval-file <this file> --user=nico          (dry run: append `dry`)
-if (!$dry && !current_user_can('unfiltered_html')) { WP_CLI::error('Run with --user=<admin> (needs unfiltered_html) — refusing to write through kses.'); }
+if (!$dry && !current_user_can('unfiltered_html')) { WP_CLI::error('Run with --user=<admin> (needs unfiltered_html) — refusing to write post_content through kses. If an admin is refused: on multisite only super admins have unfiltered_html, and DISALLOW_UNFILTERED_HTML in wp-config removes it.'); }
 $url = 'https://dtisolution.id/id/solusi/mfa-tahan-phishing-bank';
 $a = fn($t) => '<a href="' . $url . '">' . $t . '</a>';
 $plan = [
