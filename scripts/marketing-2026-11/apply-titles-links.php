@@ -25,7 +25,8 @@ foreach ($titles as $id => [$t, $d]) {
   if (!$dry) { update_post_meta($id, 'rank_math_title', $t); update_post_meta($id, 'rank_math_description', $d); }
 }
 // 453da9ed4f — internal link in 4805
-$p = get_post(4805); $c = $p->post_content;
+$p = get_post(4805); if (!$p) { WP_CLI::error('4805 missing — wrong DB or post deleted'); }
+$c = $p->post_content;
 if (strpos($c, '/id/produk/data-sanitization') !== false) { $log('4805 already links to data-sanitization'); }
 elseif (has_blocks($c)) { WP_CLI::warning('4805: block (Gutenberg) content — skipped, insert manually in the editor'); }
 else {
