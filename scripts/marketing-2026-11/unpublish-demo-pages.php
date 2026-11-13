@@ -1,6 +1,7 @@
 <?php
 /** Unpublish leftover theme-demo pages (Gridlove/King) + Rank Math 301 → /blog/. Idempotent, reversible. [dry]
- *  Keeps the front page (page_on_front). Rollback: set the pages back to publish and delete the redirections tagged in this run. */
+ *  Keeps the front page (page_on_front). Rollback: for every page with meta _dti_demo_unpublished, set it back to
+ *  publish and delete the Rank Math redirection whose ID is in its _dti_demo_redirect_id meta (absent = redirect pre-existed). */
 $dry = in_array('dry', $args ?? [], true);
 $log = fn($m) => WP_CLI::log(($dry ? '[dry] ' : '') . $m);
 // wp_update_post() re-saves the WHOLE post through kses (content_save_pre) unless
@@ -38,6 +39,7 @@ foreach ($pages as $p) {
       'url_to' => $dest, 'header_code' => 301, 'status' => 'active',
     ])->save();
     if (!$rid) WP_CLI::error("{$p->ID} {$src}: redirect not saved — stopped, page left published.");
+    update_post_meta($p->ID, '_dti_demo_redirect_id', $rid); $log("  redirect #$rid: $src -> $dest");
     $created++;
   } else { $existing++; }
   $r = wp_update_post(['ID' => $p->ID, 'post_status' => 'draft'], true);
