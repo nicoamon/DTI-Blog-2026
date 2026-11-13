@@ -6,7 +6,10 @@ $log = fn($m) => WP_CLI::log(($dry ? '[dry] ' : '') . $m);
 $front = (int) get_option('page_on_front');
 $dest = trailingslashit(home_url());
 $n = 0;
-foreach (get_pages(['post_status' => 'publish', 'number' => 500]) as $p) {
+$limit = 500; $created = 0; $existing = 0;
+$pages = get_pages(['post_status' => 'publish', 'number' => $limit]);
+if (count($pages) >= $limit) WP_CLI::warning("Hit the $limit-page limit — the list may be truncated; run again after this batch.");
+foreach ($pages as $p) {
   if ($p->ID === $front) { $log("keep front page {$p->ID} {$p->post_name}"); continue; }
   $src = $p->post_name; $n++;
   $log("{$p->ID} {$src} → draft + 301 to $dest");
@@ -18,6 +21,7 @@ foreach (get_pages(['post_status' => 'publish', 'number' => 500]) as $p) {
       'sources' => [['pattern' => $src, 'comparison' => 'exact']],
       'url_to' => $dest, 'header_code' => 301, 'status' => 'active',
     ])->save();
-  }
+    $created++;
+  } else { $existing++; }
 }
-$log("pages processed: $n");
+$log("pages drafted: $n · redirects created: $created · already existed: $existing" . ($dry ? " (dry: nothing written)" : ""));
