@@ -3,6 +3,10 @@
  *  Keeps the front page (page_on_front). Rollback: set the pages back to publish and delete the redirections tagged in this run. */
 $dry = in_array('dry', $args ?? [], true);
 $log = fn($m) => WP_CLI::log(($dry ? '[dry] ' : '') . $m);
+// wp_update_post() re-saves the WHOLE post through kses (content_save_pre) unless
+// the user has unfiltered_html — a status-only change would still strip embeds,
+// and a later rollback would restore the stripped content. Run with --user=nico.
+if (!$dry && !current_user_can('unfiltered_html')) { WP_CLI::error('Run with --user=<admin> (needs unfiltered_html) — refusing to write through kses.'); }
 $front = (int) get_option('page_on_front');
 $dest = trailingslashit(home_url());
 $n = 0;
