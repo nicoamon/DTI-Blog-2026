@@ -1,4 +1,5 @@
 <?php
+defined('WP_CLI') && WP_CLI || exit; // WP-CLI only — never runnable over HTTP if scripts/ is ever copied to a webroot
 /** agentic-marketing P6 (5 Nov 2026): one contextual link per post to /id/solusi/mfa-tahan-phishing-bank. Idempotent. [dry] */
 $dry = in_array('dry', $args ?? [], true);
 $log = fn($m) => WP_CLI::log(($dry ? '[dry] ' : '') . $m);

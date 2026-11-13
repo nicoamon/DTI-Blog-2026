@@ -1,4 +1,5 @@
 <?php
+defined('WP_CLI') && WP_CLI || exit; // WP-CLI only — never runnable over HTTP if scripts/ is ever copied to a webroot
 /** Unpublish leftover theme-demo pages (Gridlove/King) + Rank Math 301 → /blog/. Idempotent, reversible. [dry]
  *  Only the 30 page IDs in $allow are ever touched (audited 13 Nov 2026); the front page, the posts page and the
  *  privacy page are always protected. Any other published page is skipped and reported, never unpublished. Rollback: for every page with meta _dti_demo_unpublished, set it back to
