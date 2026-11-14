@@ -14,9 +14,10 @@ foreach ($titles as $id => [$t, $d]) {
   if ($ot === $t && $od === $d) { $log("$id title/meta already set"); continue; }
   // Back up the ORIGINAL values once. metadata_exists() (not a truthy check):
   // Rank Math's default title is '' — a falsy backup must still count as taken.
+  // wp_slash: update_post_meta() unslashes its value — without it a backslash in the original is lost from the backup.
   if (!$dry) {
-    if (!metadata_exists('post', $id, '_dti_prev_rank_math_title')) update_post_meta($id, '_dti_prev_rank_math_title', $ot);
-    if (!metadata_exists('post', $id, '_dti_prev_rank_math_description')) update_post_meta($id, '_dti_prev_rank_math_description', $od);
+    if (!metadata_exists('post', $id, '_dti_prev_rank_math_title')) update_post_meta($id, '_dti_prev_rank_math_title', wp_slash($ot));
+    if (!metadata_exists('post', $id, '_dti_prev_rank_math_description')) update_post_meta($id, '_dti_prev_rank_math_description', wp_slash($od));
   }
   $log("$id title: '$ot' -> '$t' (" . mb_strlen($t) . " chars) | meta " . mb_strlen($d) . " chars");
   if (!$dry) { update_post_meta($id, 'rank_math_title', $t); update_post_meta($id, 'rank_math_description', $d); }
