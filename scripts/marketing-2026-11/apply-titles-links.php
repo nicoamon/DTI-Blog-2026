@@ -9,6 +9,10 @@ $log = fn($m) => WP_CLI::log(($dry ? '[dry] ' : '') . $m);
 $p = get_post(4805); if (!$p) { WP_CLI::error('4805 missing — wrong DB or post deleted — nothing changed'); }
 $c = $p->post_content;
 $needContent = strpos($c, '/id/produk/data-sanitization') === false && !has_blocks($c);
+// Insert after the FIRST paragraph that follows the "Pentingnya Penghapusan…" heading.
+// Content may use \r\n line endings, so match with a regex instead of byte offsets.
+// Located up front too, so a missing anchor stops the run before any title is written.
+if ($needContent && !preg_match('/Pentingnya Penghapusan Data Karyawan yang Aman<\/h4>\R+([^\r\n]+)/u', $c, $m, PREG_OFFSET_CAPTURE)) { WP_CLI::error('4805: anchor paragraph not found — nothing changed'); }
 // Only the post_content write goes through kses (title/meta do not), so only then is unfiltered_html required.
 if (!$dry && $needContent && !current_user_can('unfiltered_html')) { WP_CLI::error('Run with --user=<admin> (needs unfiltered_html) — refusing to write post_content through kses; nothing changed. If an admin is refused: on multisite only super admins have unfiltered_html, and DISALLOW_UNFILTERED_HTML in wp-config removes it.'); }
 $titles = [
@@ -34,9 +38,7 @@ foreach ($titles as $id => [$t, $d]) {
 if (strpos($c, '/id/produk/data-sanitization') !== false) { $log('4805 already links to data-sanitization'); }
 elseif (has_blocks($c)) { WP_CLI::warning('4805: block (Gutenberg) content — skipped, insert manually in the editor'); }
 else {
-  // Insert after the FIRST paragraph that follows the "Pentingnya Penghapusan…" heading.
-  // Content may use \r\n line endings, so match with a regex instead of byte offsets.
-  if (!preg_match('/Pentingnya Penghapusan Data Karyawan yang Aman<\/h4>\R+([^\r\n]+)/u', $c, $m, PREG_OFFSET_CAPTURE)) { WP_CLI::error('anchor paragraph not found'); }
+  // $m (anchor match) computed at the top.
   $endPara = $m[1][1] + strlen($m[1][0]);
   $ins = "\r\n\r\nMenghapus file atau memformat drive tidak menghilangkan datanya — sisa magnetik dan blok SSD masih bisa dipulihkan. Untuk perangkat yang akan dibuang, dijual, atau dikembalikan ke vendor, organisasi biasanya memakai <strong><a href=\"https://dtisolution.id/id/produk/data-sanitization\">layanan pemusnahan data tersertifikasi</a></strong> — degaussing, penghancuran fisik, atau crypto-erase — lengkap dengan berita acara dan sertifikat pemusnahan sebagai bukti audit.";
   $log('4805 insert after paragraph: ' . substr($m[1][0], 0, 90) . '…');
