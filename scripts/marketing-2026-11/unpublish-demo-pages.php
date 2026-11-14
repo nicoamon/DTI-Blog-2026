@@ -46,7 +46,8 @@ $has_exact = function ($src) {
   $res = \RankMath\Redirections\DB::get_redirections(['search' => $src, 'status' => 'active', 'limit' => 1000]);
   foreach ((array) ($res['redirections'] ?? []) as $row) {
     if (($row['status'] ?? '') !== 'active') continue;
-    foreach ((array) maybe_unserialize($row['sources'] ?? []) as $one) { if (($one['pattern'] ?? null) === $src) return true; }
+    // Case-insensitive like MySQL's LIKE in update_iff(): a 'Trend' row must count too, or save() would overwrite it.
+    foreach ((array) maybe_unserialize($row['sources'] ?? []) as $one) { if (strcasecmp((string) ($one['pattern'] ?? ''), $src) === 0) return true; }
   }
   return false;
 };
@@ -69,10 +70,10 @@ foreach ($pages as $p) {
       'sources' => [['pattern' => $src, 'comparison' => 'exact']],
       'url_to' => $dest, 'header_code' => 301, 'status' => 'active',
     ])->save();
-    // Rank Math 1.0.275: save() returns false (no sources), the insert ID (int, 0 on a failed
-    // insert) or an existing row's ID as a numeric string. Store only a positive integer.
-    if (!is_numeric($rid) || (int) $rid <= 0) WP_CLI::error("{$p->ID} {$src}: redirect not saved (save() returned " . var_export($rid, true) . ") — stopped, page left published.");
-    $rid = (int) $rid;
+    // Rank Math 1.0.275: save() returns false (no sources), the new row's insert ID (int; 0 on a
+    // failed insert) or — when it UPDATED an existing row instead — that row's ID as a string.
+    // Only a positive int is a redirect this run created; anything else is not ours to record.
+    if (!is_int($rid) || $rid <= 0) WP_CLI::error("{$p->ID} {$src}: redirect not created (save() returned " . var_export($rid, true) . (is_string($rid) ? ' — an existing redirect was updated; check it in Rank Math → Redirections' : '') . ") — stopped, page left published.");
     update_post_meta($p->ID, '_dti_demo_redirect_id', $rid); $log("  redirect #$rid: $src -> $dest");
     $created++;
   } else { $existing++; }
