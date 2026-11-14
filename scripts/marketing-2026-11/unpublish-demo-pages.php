@@ -20,9 +20,12 @@ $skipped = 0;
 $dest = trailingslashit(home_url());
 $n = 0;
 // Check the Rank Math API before touching anything: a missing class mid-loop
-// would leave pages drafted with no redirect (404s).
-if (!$dry && (!class_exists('\\RankMath\\Redirections\\Redirection') || !class_exists('\\RankMath\\Redirections\\DB'))) {
-  WP_CLI::error('Rank Math Redirections module not available — nothing changed.');
+// would leave pages drafted with no redirect (404s). A dry run checks it too
+// (read-only) so it predicts what the real run will do.
+$rm = class_exists('\\RankMath\\Redirections\\Redirection') && class_exists('\\RankMath\\Redirections\\DB');
+if (!$rm) {
+  if (!$dry) WP_CLI::error('Rank Math Redirections module not available — nothing changed.');
+  WP_CLI::warning('Rank Math Redirections module not available — the real run would stop here.');
 }
 // match_redirections_source() is a LIKE %source% search, so 'contact' would also
 // match an existing 'contact-us' redirect and wrongly skip. Require an exact pattern.
@@ -39,10 +42,11 @@ foreach ($pages as $p) {
   if (in_array($p->ID, $protect, true)) { $log("keep protected page {$p->ID} {$p->post_name}"); continue; }
   if (!in_array($p->ID, $allow, true)) { $skipped++; $log("skip {$p->ID} {$p->post_name}: not a listed demo page"); continue; }
   $src = get_page_uri($p); $n++; // full path: child pages are parent/child, not just the last slug
-  $log("{$p->ID} {$src} → draft + 301 to $dest");
-  if ($dry) continue;
+  $exists = $rm ? $has_exact($src) : null; // read-only lookup, also in dry run
+  $log("{$p->ID} {$src} → draft + 301 to $dest" . ($exists === null ? '' : ($exists ? ' (redirect already exists)' : ' (redirect to create)')));
+  if ($dry) { if ($exists === true) $existing++; elseif ($exists === false) $created++; continue; }
   // Redirect FIRST, then unpublish: a failure leaves the page live, never a 404.
-  if (!$has_exact($src)) {
+  if (!$exists) {
     $rid = \RankMath\Redirections\Redirection::from([
       'sources' => [['pattern' => $src, 'comparison' => 'exact']],
       'url_to' => $dest, 'header_code' => 301, 'status' => 'active',
@@ -55,4 +59,6 @@ foreach ($pages as $p) {
   if (is_wp_error($r) || !$r) WP_CLI::error("{$p->ID} {$src}: unpublish failed — " . (is_wp_error($r) ? $r->get_error_message() : 'returned 0'));
   update_post_meta($p->ID, '_dti_demo_unpublished', '2026-11');
 }
-$log("pages drafted: $n · redirects created: $created · already existed: $existing · skipped (not listed): $skipped" . ($dry ? " (dry: nothing written)" : ""));
+$log($dry
+  ? "pages to draft: $n · redirects to create: $created · already exist: $existing · skipped (not listed): $skipped" . ($rm ? '' : ' · redirect lookup skipped (Rank Math missing)') . " (dry: nothing written)"
+  : "pages drafted: $n · redirects created: $created · already existed: $existing · skipped (not listed): $skipped");
