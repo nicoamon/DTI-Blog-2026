@@ -14,8 +14,17 @@ if (!$dry && !current_user_can('unfiltered_html')) { WP_CLI::error('Run with --u
 $front = (int) get_option('page_on_front');
 // Explicit allow-list (finding fc2407a8d8): 26 Gridlove/King demo pages + 4 empty 2022 module pages
 // (knowledge, produk, event, trending) whose menus are not assigned to any location. Nothing else.
-$allow = [2, 22, 25, 28, 95, 98, 105, 469, 1965, 1999, 2005, 2011, 2014, 2016, 2018, 2027, 2032, 2035,
-          2043, 2049, 2055, 2059, 2139, 2142, 2145, 2157, 4282, 4289, 4291, 4298];
+// ID => slug (post_name) as audited on prod 13 Nov 2026. A page is touched only when BOTH match:
+// on an imported/restored DB or a non-identical staging clone the same ID can be another page.
+$allow = [
+  2 => 'sample-page', 22 => 'hot', 25 => 'trend', 28 => 'users', 95 => 'categories', 98 => 'nsfw',
+  105 => 'sample-page-2', 469 => 'reactions', 1965 => 'simple-layout-a3', 1999 => 'combo-layouts',
+  2005 => 'slider-layouts', 2011 => 'cover-layout-1', 2014 => 'cover-layout-2', 2016 => 'cover-layout-3',
+  2018 => 'cover-layout-4', 2027 => 'styleguide', 2032 => 'shortcodes', 2035 => 'contact',
+  2043 => 'custom-widgets', 2049 => 'page-right-sidebar', 2055 => 'page-left-sidebar', 2059 => 'page-no-sidebar',
+  2139 => 'home-example-2-2', 2142 => 'home-example-4', 2145 => 'highlight-posts-example', 2157 => 'home-example-5',
+  4282 => 'knowledge', 4289 => 'produk', 4291 => 'event', 4298 => 'trending',
+];
 $protect = array_filter([$front, (int) get_option('page_for_posts'), (int) get_option('wp_page_for_privacy_policy')]);
 $skipped = 0;
 $dest = trailingslashit(home_url());
@@ -43,7 +52,8 @@ $pages = get_pages(['post_status' => 'publish', 'number' => $limit]);
 if (count($pages) >= $limit) WP_CLI::warning("Hit the $limit-page limit — the list may be truncated; run again after this batch.");
 foreach ($pages as $p) {
   if (in_array($p->ID, $protect, true)) { $log("keep protected page {$p->ID} {$p->post_name}"); continue; }
-  if (!in_array($p->ID, $allow, true)) { $skipped++; $log("skip {$p->ID} {$p->post_name}: not a listed demo page"); continue; }
+  if (!isset($allow[$p->ID])) { $skipped++; $log("skip {$p->ID} {$p->post_name}: not a listed demo page"); continue; }
+  if ($p->post_name !== $allow[$p->ID]) { $skipped++; WP_CLI::warning("skip {$p->ID} '{$p->post_name}': listed ID but the audited slug is '{$allow[$p->ID]}' — different database? Not touched."); continue; }
   $src = get_page_uri($p); $n++; // full path: child pages are parent/child, not just the last slug
   $log("{$p->ID} {$src} → draft + 301 to $dest");
   if ($dry) continue;
