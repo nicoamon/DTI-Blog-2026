@@ -24,10 +24,15 @@ $n = 0;
 if (!$dry && (!class_exists('\\RankMath\\Redirections\\Redirection') || !class_exists('\\RankMath\\Redirections\\DB'))) {
   WP_CLI::error('Rank Math Redirections module not available — nothing changed.');
 }
-// match_redirections_source() is a LIKE %source% search, so 'contact' would also
-// match an existing 'contact-us' redirect and wrongly skip. Require an exact pattern.
+// Look for an ACTIVE redirect whose pattern is exactly $src. Not match_redirections_source():
+// it returns only ONE row (LIMIT 1, newest first) of a LIKE %source% search, so for 'trend'
+// it can return the 'trending' row and miss the exact one. A missed match then makes save()
+// (DB::update_iff) UPDATE that existing row and return its ID, which we would record as ours
+// and a rollback would delete. Read every LIKE match and compare the pattern exactly.
 $has_exact = function ($src) {
-  foreach ((array) \RankMath\Redirections\DB::match_redirections_source($src) as $row) {
+  $res = \RankMath\Redirections\DB::get_redirections(['search' => $src, 'status' => 'active', 'limit' => 1000]);
+  foreach ((array) ($res['redirections'] ?? []) as $row) {
+    if (($row['status'] ?? '') !== 'active') continue;
     foreach ((array) maybe_unserialize($row['sources'] ?? []) as $one) { if (($one['pattern'] ?? null) === $src) return true; }
   }
   return false;
@@ -47,7 +52,10 @@ foreach ($pages as $p) {
       'sources' => [['pattern' => $src, 'comparison' => 'exact']],
       'url_to' => $dest, 'header_code' => 301, 'status' => 'active',
     ])->save();
-    if (!$rid) WP_CLI::error("{$p->ID} {$src}: redirect not saved — stopped, page left published.");
+    // Rank Math 1.0.275: save() returns false (no sources), the insert ID (int, 0 on a failed
+    // insert) or an existing row's ID as a numeric string. Store only a positive integer.
+    if (!is_numeric($rid) || (int) $rid <= 0) WP_CLI::error("{$p->ID} {$src}: redirect not saved (save() returned " . var_export($rid, true) . ") — stopped, page left published.");
+    $rid = (int) $rid;
     update_post_meta($p->ID, '_dti_demo_redirect_id', $rid); $log("  redirect #$rid: $src -> $dest");
     $created++;
   } else { $existing++; }
