@@ -2,8 +2,9 @@
 defined('WP_CLI') && WP_CLI || exit; // WP-CLI only — never runnable over HTTP if scripts/ is ever copied to a webroot
 /** Unpublish leftover theme-demo pages (Gridlove/King) + Rank Math 301 → /blog/. Idempotent, reversible. [dry]
  *  Only the 30 page IDs in $allow are ever touched (audited 13 Nov 2026); the front page, the posts page and the
- *  privacy page are always protected. Any other published page is skipped and reported, never unpublished. Rollback: for every page with meta _dti_demo_unpublished, set it back to
- *  publish and delete the Rank Math redirection whose ID is in its _dti_demo_redirect_id meta (absent = redirect pre-existed). */
+ *  privacy page are always protected. Any other published page is skipped and reported, never unpublished. Rollback: for every page
+ *  with meta _dti_demo_unpublished OR _dti_demo_redirect_id, set it back to publish and delete the Rank Math redirection whose ID is
+ *  in its _dti_demo_redirect_id meta (absent = redirect pre-existed). */
 $dry = in_array('dry', $args ?? [], true);
 $log = fn($m) => WP_CLI::log(($dry ? '[dry] ' : '') . $m);
 // wp_update_post() re-saves the WHOLE post through kses (content_save_pre) unless
@@ -46,7 +47,9 @@ foreach ($pages as $p) {
   $src = get_page_uri($p); $n++; // full path: child pages are parent/child, not just the last slug
   $log("{$p->ID} {$src} → draft + 301 to $dest");
   if ($dry) continue;
-  // Redirect FIRST, then unpublish: a failure leaves the page live, never a 404.
+  // Redirect FIRST, then unpublish: no window where the page is gone without a redirect (404).
+  // If the unpublish then fails, the redirect created here is removed again (below).
+  $rid = 0;
   if (!$has_exact($src)) {
     $rid = \RankMath\Redirections\Redirection::from([
       'sources' => [['pattern' => $src, 'comparison' => 'exact']],
@@ -60,7 +63,17 @@ foreach ($pages as $p) {
     $created++;
   } else { $existing++; }
   $r = wp_update_post(['ID' => $p->ID, 'post_status' => 'draft'], true);
-  if (is_wp_error($r) || !$r) WP_CLI::error("{$p->ID} {$src}: unpublish failed — " . (is_wp_error($r) ? $r->get_error_message() : 'returned 0'));
+  if (is_wp_error($r) || !$r) {
+    $why = is_wp_error($r) ? $r->get_error_message() : 'returned 0';
+    // Otherwise an active 301 would hide a page that is still published, with no
+    // _dti_demo_unpublished marker for the rollback to find it.
+    if ($rid) {
+      $gone = \RankMath\Redirections\DB::delete([$rid]);
+      delete_post_meta($p->ID, '_dti_demo_redirect_id');
+      WP_CLI::error("{$p->ID} {$src}: unpublish failed — $why. " . ($gone ? "Redirect #$rid removed again; page left published, no redirect." : "Redirect #$rid could NOT be removed — delete it in Rank Math → Redirections."));
+    }
+    WP_CLI::error("{$p->ID} {$src}: unpublish failed — $why. Page left published (its redirect pre-existed).");
+  }
   update_post_meta($p->ID, '_dti_demo_unpublished', '2026-11');
 }
 $log("pages drafted: $n · redirects created: $created · already existed: $existing · skipped (not listed): $skipped" . ($dry ? " (dry: nothing written)" : ""));
