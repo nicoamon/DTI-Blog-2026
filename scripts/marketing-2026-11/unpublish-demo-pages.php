@@ -30,9 +30,12 @@ $skipped = 0;
 $dest = trailingslashit(home_url());
 $n = 0;
 // Check the Rank Math API before touching anything: a missing class mid-loop
-// would leave pages drafted with no redirect (404s).
-if (!$dry && (!class_exists('\\RankMath\\Redirections\\Redirection') || !class_exists('\\RankMath\\Redirections\\DB'))) {
-  WP_CLI::error('Rank Math Redirections module not available — nothing changed.');
+// would leave pages drafted with no redirect (404s). A dry run checks it too
+// (read-only) so it predicts what the real run will do.
+$rm = class_exists('\\RankMath\\Redirections\\Redirection') && class_exists('\\RankMath\\Redirections\\DB');
+if (!$rm) {
+  if (!$dry) WP_CLI::error('Rank Math Redirections module not available — nothing changed.');
+  WP_CLI::warning('Rank Math Redirections module not available — the real run would stop here.');
 }
 // Look for an ACTIVE redirect whose pattern is exactly $src. Not match_redirections_source():
 // it returns only ONE row (LIMIT 1, newest first) of a LIKE %source% search, so for 'trend'
@@ -55,12 +58,13 @@ foreach ($pages as $p) {
   if (!isset($allow[$p->ID])) { $skipped++; $log("skip {$p->ID} {$p->post_name}: not a listed demo page"); continue; }
   if ($p->post_name !== $allow[$p->ID]) { $skipped++; WP_CLI::warning("skip {$p->ID} '{$p->post_name}': listed ID but the audited slug is '{$allow[$p->ID]}' — different database? Not touched."); continue; }
   $src = get_page_uri($p); $n++; // full path: child pages are parent/child, not just the last slug
-  $log("{$p->ID} {$src} → draft + 301 to $dest");
-  if ($dry) continue;
+  $exists = $rm ? $has_exact($src) : null; // read-only lookup, also in dry run
+  $log("{$p->ID} {$src} → draft + 301 to $dest" . ($exists === null ? '' : ($exists ? ' (redirect already exists)' : ' (redirect to create)')));
+  if ($dry) { if ($exists === true) $existing++; elseif ($exists === false) $created++; continue; }
   // Redirect FIRST, then unpublish: no window where the page is gone without a redirect (404).
   // If the unpublish then fails, the redirect created here is removed again (below).
   $rid = 0;
-  if (!$has_exact($src)) {
+  if (!$exists) {
     $rid = \RankMath\Redirections\Redirection::from([
       'sources' => [['pattern' => $src, 'comparison' => 'exact']],
       'url_to' => $dest, 'header_code' => 301, 'status' => 'active',
@@ -86,4 +90,6 @@ foreach ($pages as $p) {
   }
   update_post_meta($p->ID, '_dti_demo_unpublished', '2026-11');
 }
-$log("pages drafted: $n · redirects created: $created · already existed: $existing · skipped (not listed): $skipped" . ($dry ? " (dry: nothing written)" : ""));
+$log($dry
+  ? "pages to draft: $n · redirects to create: $created · already exist: $existing · skipped (not listed): $skipped" . ($rm ? '' : ' · redirect lookup skipped (Rank Math missing)') . " (dry: nothing written)"
+  : "pages drafted: $n · redirects created: $created · already existed: $existing · skipped (not listed): $skipped");
