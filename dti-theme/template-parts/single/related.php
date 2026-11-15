@@ -10,7 +10,7 @@
  */
 ob_start();
 include get_template_directory() . '/template-parts/single/related.php';
-$html = ob_get_clean();
-$html = preg_replace('~<h2(\s+class="entry-title[^"]*"[^>]*)>(.*?)</h2>~s', '<h3$1>$2</h3>', $html);
-$html = preg_replace('~(<h4 class="h2">)(.*?)</h2>~s', '$1$2</h4>', $html);
+$orig = ob_get_clean();
+$html = preg_replace('~<h2(\s+class="entry-title[^"]*"[^>]*)>(.*?)</h2>~s', '<h3$1>$2</h3>', $orig) ?? $orig;
+$html = preg_replace('~(<h4 class="h2">)([^<]*)</h2>~', '$1$2</h4>', $html) ?? $html; // [^<]: never reaches a later h2
 echo $html;
