@@ -60,9 +60,13 @@ $has_exact = function ($src) use ($active_matches) {
   foreach ($active_matches($src) as $row) {
     if (($row['status'] ?? '') !== 'active') continue;
     foreach ((array) maybe_unserialize($row['sources'] ?? []) as $one) {
-      $pat = (string) ($one['pattern'] ?? '');
-      if ($pat === $src || (strcasecmp($pat, $src) === 0 && ($one['ignore'] ?? '') === 'case')) return 'exists';
-      if (strcasecmp($pat, $src) === 0) $found = 'conflict';
+      $pat = (string) ($one['pattern'] ?? ''); $cmp = (string) ($one['comparison'] ?? 'exact');
+      $exact = $cmp === 'exact'; $icase = ($one['ignore'] ?? '') === 'case';
+      if ($pat === $src) return 'exists';                                            // same case: serves /$src with any comparison
+      if (strcasecmp($pat, $src) !== 0) continue;
+      if ($exact && $icase) return 'exists';                                         // Rank Math honours ignore=case for exact only
+      // Would update_iff() overwrite this row? Only a single-source, exact, ignore='' row matches its serialized LIKE.
+      if ($exact && !$icase && count((array) maybe_unserialize($row['sources'])) === 1) $found = 'conflict';
     }
   }
   return $found;
