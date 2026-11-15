@@ -40,13 +40,24 @@ if (!$rm) {
 // Look for an ACTIVE redirect for $src. Not match_redirections_source(): it returns only ONE
 // row (LIMIT 1, newest first) of a LIKE %source% search, so for 'trend' it can return the
 // 'trending' row and miss the right one. Read every LIKE match and compare the pattern.
+// Page through ALL matches: a short, common slug (e.g. 'hot') can match many rows, and a single
+// page could silently cut off the right one.
+$active_matches = function ($src) {
+  $rows = []; $per = 200;
+  for ($paged = 1; $paged <= 1000; $paged++) {
+    $res = \RankMath\Redirections\DB::get_redirections(['search' => $src, 'status' => 'active', 'limit' => $per, 'paged' => $paged]);
+    $batch = (array) ($res['redirections'] ?? []);
+    $rows = array_merge($rows, $batch);
+    if (count($batch) < $per || count($rows) >= (int) ($res['count'] ?? 0)) return $rows;
+  }
+  WP_CLI::error("redirect lookup for '$src' did not finish paging — run stopped before touching this page.");
+};
 // Returns 'exists' (a redirect that really serves /$src), 'conflict' (same pattern in another
 // letter case, which Rank Math's case-sensitive exact match does NOT serve, yet save()/
 // update_iff() — a case-insensitive LIKE — would overwrite) or false (none: safe to create).
-$has_exact = function ($src) {
-  $res = \RankMath\Redirections\DB::get_redirections(['search' => $src, 'status' => 'active', 'limit' => 1000]);
+$has_exact = function ($src) use ($active_matches) {
   $found = false;
-  foreach ((array) ($res['redirections'] ?? []) as $row) {
+  foreach ($active_matches($src) as $row) {
     if (($row['status'] ?? '') !== 'active') continue;
     foreach ((array) maybe_unserialize($row['sources'] ?? []) as $one) {
       $pat = (string) ($one['pattern'] ?? '');
