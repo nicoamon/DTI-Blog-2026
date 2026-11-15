@@ -48,7 +48,7 @@ $active_matches = function ($src) {
     $res = \RankMath\Redirections\DB::get_redirections(['search' => $src, 'status' => 'active', 'limit' => $per, 'paged' => $paged]);
     $batch = (array) ($res['redirections'] ?? []);
     $rows = array_merge($rows, $batch);
-    if (count($batch) < $per || count($rows) >= (int) ($res['count'] ?? 0)) return $rows;
+    if (count($batch) < $per) return $rows; // a short page is the last one (does not rely on FOUND_ROWS)
   }
   WP_CLI::error("redirect lookup for '$src' did not finish paging — run stopped before touching this page.");
 };
