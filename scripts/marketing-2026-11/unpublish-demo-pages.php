@@ -42,9 +42,20 @@ if (!$rm) {
 // it can return the 'trending' row and miss the exact one. A missed match then makes save()
 // (DB::update_iff) UPDATE that existing row and return its ID, which we would record as ours
 // and a rollback would delete. Read every LIKE match and compare the pattern exactly.
-$has_exact = function ($src) {
-  $res = \RankMath\Redirections\DB::get_redirections(['search' => $src, 'status' => 'active', 'limit' => 1000]);
-  foreach ((array) ($res['redirections'] ?? []) as $row) {
+// Page through ALL matches: a short, common slug (e.g. 'hot') can match many rows, and a single
+// page could silently cut off the exact one.
+$active_matches = function ($src) {
+  $rows = []; $per = 200;
+  for ($paged = 1; $paged <= 1000; $paged++) {
+    $res = \RankMath\Redirections\DB::get_redirections(['search' => $src, 'status' => 'active', 'limit' => $per, 'paged' => $paged]);
+    $batch = (array) ($res['redirections'] ?? []);
+    $rows = array_merge($rows, $batch);
+    if (count($batch) < $per || count($rows) >= (int) ($res['count'] ?? 0)) return $rows;
+  }
+  WP_CLI::error("redirect lookup for '$src' did not finish paging — run stopped before touching this page.");
+};
+$has_exact = function ($src) use ($active_matches) {
+  foreach ($active_matches($src) as $row) {
     if (($row['status'] ?? '') !== 'active') continue;
     // Case-insensitive like MySQL's LIKE in update_iff(): a 'Trend' row must count too, or save() would overwrite it.
     foreach ((array) maybe_unserialize($row['sources'] ?? []) as $one) { if (strcasecmp((string) ($one['pattern'] ?? ''), $src) === 0) return true; }
