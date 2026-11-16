@@ -8,8 +8,14 @@
  *  2. Parent bug: the "Related" heading opens <h4 class="h2"> but closes with </h2>.
  * Archive/home grids are not affected (they do not use this template).
  */
+$parent = get_template_directory() . '/template-parts/single/related.php';
+if (!is_readable($parent)) {
+  // Parent theme changed or moved the file: render nothing (as before) but leave a trace instead of a PHP warning.
+  error_log('dti-blog related.php: parent template not found at ' . $parent . ' — related block not rendered');
+  return;
+}
 ob_start();
-include get_template_directory() . '/template-parts/single/related.php';
+include $parent;
 $orig = ob_get_clean();
 $html = preg_replace('~<h2(\s+class="entry-title[^"]*"[^>]*)>(.*?)</h2>~s', '<h3$1>$2</h3>', $orig) ?? $orig;
 $html = preg_replace('~(<h4 class="h2">)([^<]*)</h2>~', '$1$2</h4>', $html) ?? $html; // [^<]: never reaches a later h2
