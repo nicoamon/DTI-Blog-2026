@@ -85,8 +85,11 @@ foreach ($pages as $p) {
   $exists = $exists === null ? null : (bool) $exists; $n++;
   // An existing redirect already decides where /$src goes (it is live whether or not the page is
   // published), so drafting the page does not change that — but say so when it is not the audited target.
-  if ($exists && untrailingslashit($hit_to) !== untrailingslashit($dest)) WP_CLI::warning("{$p->ID} {$src}: existing redirect ($hit_cmp) goes to '$hit_to', not $dest — left as is; change it in Rank Math → Redirections if that is wrong.");
-  $log("{$p->ID} {$src} → draft + 301 to $dest" . ($exists === null ? '' : ($exists ? ' (redirect already exists)' : ' (redirect to create)')));
+  // Compare as site paths: '/blog/', 'http://…/blog' and 'https://…/blog/' are the same target.
+  $same_site = fn($u) => untrailingslashit(preg_replace('~^https?://' . preg_quote((string) parse_url(home_url(), PHP_URL_HOST), '~') . '~i', '', trim((string) $u)));
+  $elsewhere = $exists && $same_site($hit_to) !== $same_site($dest);
+  if ($elsewhere) WP_CLI::warning("{$p->ID} {$src}: existing redirect ($hit_cmp) goes to '$hit_to', not $dest — left as is; change it in Rank Math → Redirections if that is wrong.");
+  $log("{$p->ID} {$src} → draft + 301 to " . ($elsewhere ? $hit_to : $dest) . ($exists === null ? '' : ($exists ? ' (redirect already exists)' : ' (redirect to create)')));
   if ($dry) { if ($exists === true) $existing++; elseif ($exists === false) $created++; continue; }
   // Redirect FIRST, then unpublish: no window where the page is gone without a redirect (404).
   // If the unpublish then fails, the redirect created here is removed again (below).
