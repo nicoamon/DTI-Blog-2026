@@ -55,16 +55,17 @@ $active_matches = function ($src) {
 // Returns 'exists' (a redirect that really serves /$src), 'conflict' (same pattern in another
 // letter case, which Rank Math's case-sensitive exact match does NOT serve, yet save()/
 // update_iff() — a case-insensitive LIKE — would overwrite) or false (none: safe to create).
-$has_exact = function ($src) use ($active_matches) {
-  $found = false;
+$hit_to = ''; $hit_cmp = ''; // destination + comparison of the redirect found by $has_exact (for the log)
+$has_exact = function ($src) use ($active_matches, &$hit_to, &$hit_cmp) {
+  $found = false; $hit_to = ''; $hit_cmp = '';
   foreach ($active_matches($src) as $row) {
     if (($row['status'] ?? '') !== 'active') continue;
     foreach ((array) maybe_unserialize($row['sources'] ?? []) as $one) {
       $pat = (string) ($one['pattern'] ?? ''); $cmp = (string) ($one['comparison'] ?? 'exact');
       $exact = $cmp === 'exact'; $icase = ($one['ignore'] ?? '') === 'case';
-      if ($pat === $src) return 'exists';                                            // same case: serves /$src with any comparison
+      if ($pat === $src) { $hit_to = (string) ($row['url_to'] ?? ''); $hit_cmp = $cmp; return 'exists'; }                                            // same case: serves /$src with any comparison
       if (strcasecmp($pat, $src) !== 0) continue;
-      if ($exact && $icase) return 'exists';                                         // Rank Math honours ignore=case for exact only
+      if ($exact && $icase) { $hit_to = (string) ($row['url_to'] ?? ''); $hit_cmp = $cmp; return 'exists'; }                                         // Rank Math honours ignore=case for exact only
       // Would update_iff() overwrite this row? Only a single-source, exact, ignore='' row matches its serialized LIKE.
       if ($exact && !$icase && count((array) maybe_unserialize($row['sources'])) === 1) $found = 'conflict';
     }
@@ -82,6 +83,9 @@ foreach ($pages as $p) {
   $exists = $rm ? $has_exact($src) : null; // read-only lookup, also in dry run
   if ($exists === 'conflict') { $conflicts++; WP_CLI::warning("skip {$p->ID} {$src}: an active redirect has the same pattern in another letter case — it does not serve /$src, and saving a new one would overwrite it. Page not touched; fix the redirect in Rank Math → Redirections first."); continue; }
   $exists = $exists === null ? null : (bool) $exists; $n++;
+  // An existing redirect already decides where /$src goes (it is live whether or not the page is
+  // published), so drafting the page does not change that — but say so when it is not the audited target.
+  if ($exists && untrailingslashit($hit_to) !== untrailingslashit($dest)) WP_CLI::warning("{$p->ID} {$src}: existing redirect ($hit_cmp) goes to '$hit_to', not $dest — left as is; change it in Rank Math → Redirections if that is wrong.");
   $log("{$p->ID} {$src} → draft + 301 to $dest" . ($exists === null ? '' : ($exists ? ' (redirect already exists)' : ' (redirect to create)')));
   if ($dry) { if ($exists === true) $existing++; elseif ($exists === false) $created++; continue; }
   // Redirect FIRST, then unpublish: no window where the page is gone without a redirect (404).
