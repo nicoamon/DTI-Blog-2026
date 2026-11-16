@@ -42,36 +42,44 @@ if (!$rm) {
 // 'trending' row and miss the right one. Read every LIKE match and compare the pattern.
 // Page through ALL matches: a short, common slug (e.g. 'hot') can match many rows, and a single
 // page could silently cut off the right one.
+// Returns null when the lookup cannot be completed: the caller then skips only THIS page
+// (warning + counted) and the run continues to the summary, instead of stopping mid-run.
 $active_matches = function ($src) {
-  $rows = []; $per = 200;
+  $rows = []; $per = 200; $prev_first = null;
   for ($paged = 1; $paged <= 1000; $paged++) {
     $res = \RankMath\Redirections\DB::get_redirections(['search' => $src, 'status' => 'active', 'limit' => $per, 'paged' => $paged]);
-    $batch = (array) ($res['redirections'] ?? []);
+    $batch = array_values((array) ($res['redirections'] ?? []));
+    $first = $batch[0]['id'] ?? null;
+    if ($paged > 1 && $first !== null && $first === $prev_first) return null; // 'paged' ignored: same page again
+    $prev_first = $first;
     $rows = array_merge($rows, $batch);
     if (count($batch) < $per) return $rows; // a short page is the last one (does not rely on FOUND_ROWS)
   }
-  WP_CLI::error("redirect lookup for '$src' did not finish paging — run stopped before touching this page.");
+  return null;
 };
 // Returns 'exists' (a redirect that really serves /$src), 'conflict' (same pattern in another
 // letter case, which Rank Math's case-sensitive exact match does NOT serve, yet save()/
 // update_iff() — a case-insensitive LIKE — would overwrite) or false (none: safe to create).
-$has_exact = function ($src) use ($active_matches) {
-  $found = false;
-  foreach ($active_matches($src) as $row) {
+$hit_to = ''; $hit_cmp = ''; // destination + comparison of the redirect found by $has_exact (for the log)
+$has_exact = function ($src) use ($active_matches, &$hit_to, &$hit_cmp) {
+  $found = false; $hit_to = ''; $hit_cmp = '';
+  $rows = $active_matches($src);
+  if ($rows === null) return 'unknown';
+  foreach ($rows as $row) {
     if (($row['status'] ?? '') !== 'active') continue;
     foreach ((array) maybe_unserialize($row['sources'] ?? []) as $one) {
       $pat = (string) ($one['pattern'] ?? ''); $cmp = (string) ($one['comparison'] ?? 'exact');
       $exact = $cmp === 'exact'; $icase = ($one['ignore'] ?? '') === 'case';
-      if ($pat === $src) return 'exists';                                            // same case: serves /$src with any comparison
+      if ($pat === $src) { $hit_to = (string) ($row['url_to'] ?? ''); $hit_cmp = $cmp; return 'exists'; }                                            // same case: serves /$src with any comparison
       if (strcasecmp($pat, $src) !== 0) continue;
-      if ($exact && $icase) return 'exists';                                         // Rank Math honours ignore=case for exact only
+      if ($exact && $icase) { $hit_to = (string) ($row['url_to'] ?? ''); $hit_cmp = $cmp; return 'exists'; }                                         // Rank Math honours ignore=case for exact only
       // Would update_iff() overwrite this row? Only a single-source, exact, ignore='' row matches its serialized LIKE.
       if ($exact && !$icase && count((array) maybe_unserialize($row['sources'])) === 1) $found = 'conflict';
     }
   }
   return $found;
 };
-$limit = 500; $created = 0; $existing = 0; $conflicts = 0;
+$limit = 500; $created = 0; $existing = 0; $conflicts = 0; $unknown = 0;
 $pages = get_pages(['post_status' => 'publish', 'number' => $limit]);
 if (count($pages) >= $limit) WP_CLI::warning("Hit the $limit-page limit — the list may be truncated; run again after this batch.");
 foreach ($pages as $p) {
@@ -80,9 +88,16 @@ foreach ($pages as $p) {
   if ($p->post_name !== $allow[$p->ID]) { $skipped++; WP_CLI::warning("skip {$p->ID} '{$p->post_name}': listed ID but the audited slug is '{$allow[$p->ID]}' — different database? Not touched."); continue; }
   $src = get_page_uri($p); // full path: child pages are parent/child, not just the last slug
   $exists = $rm ? $has_exact($src) : null; // read-only lookup, also in dry run
+  if ($exists === 'unknown') { $unknown++; WP_CLI::warning("skip {$p->ID} {$src}: redirect lookup could not be completed (paging) — page not touched."); continue; }
   if ($exists === 'conflict') { $conflicts++; WP_CLI::warning("skip {$p->ID} {$src}: an active redirect has the same pattern in another letter case — it does not serve /$src, and saving a new one would overwrite it. Page not touched; fix the redirect in Rank Math → Redirections first."); continue; }
   $exists = $exists === null ? null : (bool) $exists; $n++;
-  $log("{$p->ID} {$src} → draft + 301 to $dest" . ($exists === null ? '' : ($exists ? ' (redirect already exists)' : ' (redirect to create)')));
+  // An existing redirect already decides where /$src goes (it is live whether or not the page is
+  // published), so drafting the page does not change that — but say so when it is not the audited target.
+  // Compare as site paths: '/blog/', 'http://…/blog' and 'https://…/blog/' are the same target.
+  $same_site = fn($u) => untrailingslashit(preg_replace('~^https?://' . preg_quote((string) parse_url(home_url(), PHP_URL_HOST), '~') . '~i', '', trim((string) $u)));
+  $elsewhere = $exists && $same_site($hit_to) !== $same_site($dest);
+  if ($elsewhere) WP_CLI::warning("{$p->ID} {$src}: existing redirect ($hit_cmp) goes to '$hit_to', not $dest — left as is; change it in Rank Math → Redirections if that is wrong.");
+  $log("{$p->ID} {$src} → draft + 301 to " . ($elsewhere ? $hit_to : $dest) . ($exists === null ? '' : ($exists ? ' (redirect already exists)' : ' (redirect to create)')));
   if ($dry) { if ($exists === true) $existing++; elseif ($exists === false) $created++; continue; }
   // Redirect FIRST, then unpublish: no window where the page is gone without a redirect (404).
   // If the unpublish then fails, the redirect created here is removed again (below).
@@ -114,5 +129,5 @@ foreach ($pages as $p) {
   update_post_meta($p->ID, '_dti_demo_unpublished', '2026-11');
 }
 $log($dry
-  ? "pages to draft: $n · redirects to create: $created · already exist: $existing · skipped (not listed): $skipped · skipped (case conflict): $conflicts" . ($rm ? '' : ' · redirect lookup skipped (Rank Math missing)') . " (dry: nothing written)"
-  : "pages drafted: $n · redirects created: $created · already existed: $existing · skipped (not listed): $skipped · skipped (case conflict): $conflicts");
+  ? "pages to draft: $n · redirects to create: $created · already exist: $existing · skipped (not listed): $skipped · skipped (case conflict): $conflicts · skipped (lookup failed): $unknown" . ($rm ? '' : ' · redirect lookup skipped (Rank Math missing)') . " (dry: nothing written)"
+  : "pages drafted: $n · redirects created: $created · already existed: $existing · skipped (not listed): $skipped · skipped (case conflict): $conflicts · skipped (lookup failed): $unknown");
