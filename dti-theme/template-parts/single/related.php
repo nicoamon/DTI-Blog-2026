@@ -8,10 +8,18 @@
  *  2. Parent bug: the "Related" heading opens <h4 class="h2"> but closes with </h2>.
  * Archive/home grids are not affected (they do not use this template).
  */
+// Throttled log: a Gridlove change would otherwise write one line on EVERY single-post view
+// (container logs are not rotated). One line per hour per message is enough to notice.
+$dti_related_log = function ($msg) {
+  $k = 'dti_related_log_' . md5($msg);
+  if (get_transient($k)) return;
+  set_transient($k, 1, HOUR_IN_SECONDS);
+  error_log('dti-blog related.php: ' . $msg);
+};
 $parent = get_template_directory() . '/template-parts/single/related.php';
 if (!is_readable($parent)) {
   // Parent theme changed or moved the file: render nothing (as before) but leave a trace instead of a PHP warning.
-  error_log('dti-blog related.php: parent template not found at ' . $parent . ' — related block not rendered');
+  $dti_related_log('parent template not found at ' . $parent . ' — related block not rendered');
   return;
 }
 ob_start();
