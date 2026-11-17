@@ -26,11 +26,16 @@ ob_start();
 include $parent;
 $orig = ob_get_clean();
 // Attribute order/extra attributes tolerated: any <h2 …> whose class list contains entry-title.
-$html = preg_replace('~<h2(\s[^>]*\bclass="(?:[^"]*\s)?entry-title(?=[\s"])[^"]*"[^>]*)>(.*?)</h2>~s', '<h3$1>$2</h3>', $orig, -1, $n_cards) ?? $orig;
-$html = preg_replace('~(<h4\s+class="h2">)([^<]*)</h2>~', '$1$2</h4>', $html, -1, $n_head) ?? $html; // [^<]: never reaches a later h2
+$html = preg_replace('~<h2(\s[^>]*\bclass="(?:[^"]*\s)?entry-title(?=[\s"])[^"]*"[^>]*)>(.*?)</h2>~s', '<h3$1>$2</h3>', $orig, -1, $n_cards);
+$re_err = $html === null ? preg_last_error_msg() : ''; // PCRE limit etc.: not a markup change
+$html = $html ?? $orig;
+$tmp = preg_replace('~(<h4\s+class="h2">)([^<]*)</h2>~', '$1$2</h4>', $html, -1, $n_head); // [^<]: never reaches a later h2
+if ($tmp === null) { $re_err = $re_err !== '' ? $re_err : preg_last_error_msg(); } else { $html = $tmp; }
 // Smoke check: if Gridlove changes its markup the fix silently stops working — leave a trace
 // when the parent output still has entry-title h2s or a mismatched heading after the fix.
-if (preg_match('~<h2\s[^>]*\bclass="(?:[^"]*\s)?entry-title(?=[\s"])~', $html) || preg_match('~<h4\s+class="h2">[^<]*</h2>~', $html) || ($orig !== '' && strpos($orig, 'entry-title') !== false && !$n_cards)) {
+if ($re_err !== '') {
+  $dti_related_log('heading fix regex failed (' . $re_err . ') — headings left as Gridlove renders them');
+} elseif (preg_match('~<h2\s[^>]*\bclass="(?:[^"]*\s)?entry-title(?=[\s"])~', $html) || preg_match('~<h4\s+class="h2">[^<]*</h2>~', $html) || ($orig !== '' && strpos($orig, 'entry-title') !== false && !$n_cards)) {
   $dti_related_log('heading fix did not apply (Gridlove markup changed?) — cards fixed: ' . (int) $n_cards . ', heading fixed: ' . (int) $n_head);
 }
 echo $html;
