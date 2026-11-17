@@ -23,7 +23,7 @@ if (!is_readable($dti_parent_tpl)) {
   return;
 }
 ob_start();
-include $dti_parent_tpl; // prefixed names: this scope is shared with the parent template
+include $dti_parent_tpl; // names set BEFORE this include are visible to the parent template: keep them dti_-prefixed
 $orig = ob_get_clean();
 // Attribute order/extra attributes tolerated: any <h2 …> whose class list contains entry-title.
 $html = preg_replace('~<h2(\s[^>]*\bclass="(?:[^"]*\s)?entry-title(?=[\s"])[^"]*"[^>]*)>(.*?)</h2>~s', '<h3$1>$2</h3>', $orig, -1, $n_cards) ?? $orig;
