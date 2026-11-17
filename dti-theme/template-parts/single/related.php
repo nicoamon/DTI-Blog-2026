@@ -22,6 +22,12 @@ if (!is_readable($parent)) {
   $dti_related_log('parent template not found at ' . $parent . ' — related block not rendered');
   return;
 }
+// No Gridlove parent (this theme active on its own) → the "parent" path is THIS file: including it
+// would recurse until PHP dies. Render nothing and log instead.
+if (realpath($parent) === realpath(__FILE__)) {
+  $dti_related_log('parent template resolves to this child file (Gridlove not the parent theme?) — related block not rendered');
+  return;
+}
 ob_start();
 include $parent;
 $orig = ob_get_clean();
