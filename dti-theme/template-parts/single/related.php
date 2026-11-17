@@ -16,14 +16,14 @@ $dti_related_log = function ($msg) {
   set_transient($k, 1, HOUR_IN_SECONDS);
   error_log('dti-blog related.php: ' . $msg);
 };
-$parent = get_template_directory() . '/template-parts/single/related.php';
-if (!is_readable($parent)) {
+$dti_parent_tpl = get_template_directory() . '/template-parts/single/related.php';
+if (!is_readable($dti_parent_tpl)) {
   // Parent theme changed or moved the file: render nothing (as before) but leave a trace instead of a PHP warning.
-  $dti_related_log('parent template not found at ' . $parent . ' — related block not rendered');
+  $dti_related_log('parent template not found at ' . $dti_parent_tpl . ' — related block not rendered');
   return;
 }
 ob_start();
-include $parent;
+include $dti_parent_tpl; // prefixed names: this scope is shared with the parent template
 $orig = ob_get_clean();
 // Attribute order/extra attributes tolerated: any <h2 …> whose class list contains entry-title.
 $html = preg_replace('~<h2(\s[^>]*\bclass="(?:[^"]*\s)?entry-title(?=[\s"])[^"]*"[^>]*)>(.*?)</h2>~s', '<h3$1>$2</h3>', $orig, -1, $n_cards) ?? $orig;
