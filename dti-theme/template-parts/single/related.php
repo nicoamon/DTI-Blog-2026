@@ -32,11 +32,11 @@ ob_start();
 include $dti_parent_tpl; // prefixed names: this scope is shared with the parent template
 $orig = ob_get_clean();
 // Attribute order/extra attributes tolerated: any <h2 …> whose class list contains entry-title.
-$html = preg_replace('~<h2(\s[^>]*\bclass="(?:[^"]*\s)?entry-title(?=[\s"])[^"]*"[^>]*)>(.*?)</h2>~s', '<h3$1>$2</h3>', $orig, -1, $n_cards) ?? $orig;
+$html = preg_replace('~<h2(\s[^>]*(?<=\s)class="(?:[^"]*\s)?entry-title(?=[\s"])[^"]*"[^>]*)>(.*?)</h2>~s', '<h3$1>$2</h3>', $orig, -1, $n_cards) ?? $orig;
 $html = preg_replace('~(<h4\s+class="h2">)([^<]*)</h2>~', '$1$2</h4>', $html, -1, $n_head) ?? $html; // [^<]: never reaches a later h2
 // Smoke check: if Gridlove changes its markup the fix silently stops working — leave a trace
 // when the parent output still has entry-title h2s or a mismatched heading after the fix.
-if (preg_match('~<h2\s[^>]*\bclass="(?:[^"]*\s)?entry-title(?=[\s"])~', $html) || preg_match('~<h4\s+class="h2">[^<]*</h2>~', $html) || ($orig !== '' && strpos($orig, 'entry-title') !== false && !$n_cards)) {
+if (preg_match('~<h2\s[^>]*(?<=\s)class="(?:[^"]*\s)?entry-title(?=[\s"])~', $html) || preg_match('~<h4\s+class="h2">[^<]*</h2>~', $html) || ($orig !== '' && strpos($orig, 'entry-title') !== false && !$n_cards)) {
   $dti_related_log('heading fix did not apply (Gridlove markup changed?) — cards fixed: ' . (int) $n_cards . ', heading fixed: ' . (int) $n_head);
 }
 echo $html;
