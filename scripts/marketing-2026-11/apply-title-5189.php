@@ -21,6 +21,9 @@ if ($rollback) {
   if (!$dry) {
     // An empty backup means Rank Math's default was in use: delete the meta instead of storing ''.
     foreach (['rank_math_title', 'rank_math_description'] as $k) {
+      // No backup for this key (partial earlier run, manual cleanup…): get_post_meta() would return ''
+      // and the live value would be DELETED. Leave it untouched instead.
+      if (!metadata_exists('post', $id, "_dti_prev_$k")) { WP_CLI::warning("$id: no backup for $k — left as is"); continue; }
       $prev = get_post_meta($id, "_dti_prev_$k", true);
       if ($prev === '') delete_post_meta($id, $k); else update_post_meta($id, $k, wp_slash($prev));
       delete_post_meta($id, "_dti_prev_$k"); // backup consumed — a later run takes a fresh one
