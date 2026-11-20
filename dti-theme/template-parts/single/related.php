@@ -16,21 +16,32 @@ $dti_related_log = function ($msg) {
   set_transient($k, 1, HOUR_IN_SECONDS);
   error_log('dti-blog related.php: ' . $msg);
 };
-$parent = get_template_directory() . '/template-parts/single/related.php';
-if (!is_readable($parent)) {
+$dti_parent_tpl = get_template_directory() . '/template-parts/single/related.php';
+if (!is_readable($dti_parent_tpl)) {
   // Parent theme changed or moved the file: render nothing (as before) but leave a trace instead of a PHP warning.
-  $dti_related_log('parent template not found at ' . $parent . ' — related block not rendered');
+  $dti_related_log('parent template not found at ' . $dti_parent_tpl . ' — related block not rendered');
+  return;
+}
+// No Gridlove parent (this theme active on its own) → the "parent" path is THIS file: including it
+// would recurse until PHP dies. Render nothing and log instead.
+if (realpath($dti_parent_tpl) === realpath(__FILE__)) {
+  $dti_related_log('parent template resolves to this child file (Gridlove not the parent theme?) — related block not rendered');
   return;
 }
 ob_start();
-include $parent;
+include $dti_parent_tpl; // names set BEFORE this include are visible to the parent template: keep them dti_-prefixed
 $orig = ob_get_clean();
 // Attribute order/extra attributes tolerated: any <h2 …> whose class list contains entry-title.
-$html = preg_replace('~<h2(\s[^>]*\bclass="(?:[^"]*\s)?entry-title(?=[\s"])[^"]*"[^>]*)>(.*?)</h2>~s', '<h3$1>$2</h3>', $orig, -1, $n_cards) ?? $orig;
-$html = preg_replace('~(<h4\s+class="h2">)([^<]*)</h2>~', '$1$2</h4>', $html, -1, $n_head) ?? $html; // [^<]: never reaches a later h2
+$html = preg_replace('~<h2(\s[^>]*(?<=\s)class="(?:[^"]*\s)?entry-title(?=[\s"])[^"]*"[^>]*)>(.*?)</h2>~s', '<h3$1>$2</h3>', $orig, -1, $n_cards);
+$re_err = $html === null ? preg_last_error_msg() : ''; // PCRE limit etc.: not a markup change
+$html = $html ?? $orig;
+$tmp = preg_replace('~(<h4\s+class="h2">)([^<]*)</h2>~', '$1$2</h4>', $html, -1, $n_head); // [^<]: never reaches a later h2
+if ($tmp === null) { $re_err = $re_err !== '' ? $re_err : preg_last_error_msg(); } else { $html = $tmp; }
 // Smoke check: if Gridlove changes its markup the fix silently stops working — leave a trace
 // when the parent output still has entry-title h2s or a mismatched heading after the fix.
-if (preg_match('~<h2\s[^>]*\bclass="(?:[^"]*\s)?entry-title(?=[\s"])~', $html) || preg_match('~<h4\s+class="h2">[^<]*</h2>~', $html) || ($orig !== '' && strpos($orig, 'entry-title') !== false && !$n_cards)) {
+if ($re_err !== '') {
+  $dti_related_log('heading fix regex failed (' . $re_err . ') — headings left as Gridlove renders them');
+} elseif (preg_match('~<h2\s[^>]*(?<=\s)class="(?:[^"]*\s)?entry-title(?=[\s"])~', $html) || preg_match('~<h4\s+class="h2">[^<]*</h2>~', $html)) {
   $dti_related_log('heading fix did not apply (Gridlove markup changed?) — cards fixed: ' . (int) $n_cards . ', heading fixed: ' . (int) $n_head);
 }
 echo $html;
