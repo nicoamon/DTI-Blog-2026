@@ -555,3 +555,34 @@ function dti_blog_share_labels() {
 	<?php
 }
 add_action( 'wp_footer', 'dti_blog_share_labels', 96 );
+
+/* ------------------------------------------------------------------------
+ * Audit konten 21 Nov 2026, gelombang 1 (ACC Nico 22 Nov): halaman indeks
+ * blog (static front page 207, dipaginasi /blog/page/N/).
+ * ---------------------------------------------------------------------- */
+// 1. Satu H1 untuk indeks (tema tidak mengeluarkan H1 di front page).
+function dti_blog_index_h1() {
+	if ( is_front_page() ) {
+		$n = max( 1, (int) get_query_var( 'paged' ), (int) get_query_var( 'page' ) );
+		echo '<h1 class="screen-reader-text">Blog DTI: keamanan data, tanda tangan digital, dan sistem informasi kesehatan' . ( $n > 1 ? ' (halaman ' . $n . ')' : '' ) . '</h1>';
+	}
+}
+add_action( 'wp_body_open', 'dti_blog_index_h1' );
+// 2. Halaman paginasi: canonical ke dirinya sendiri, bukan ke halaman 1; judul menyebut nomor halaman.
+function dti_blog_paged_n() { return is_front_page() ? max( (int) get_query_var( 'paged' ), (int) get_query_var( 'page' ) ) : 0; }
+add_filter( 'rank_math/frontend/canonical', function ( $canonical ) {
+	$n = dti_blog_paged_n();
+	return $n > 1 ? get_pagenum_link( $n ) : $canonical;
+} );
+add_filter( 'rank_math/frontend/title', function ( $title ) {
+	$n = dti_blog_paged_n();
+	return $n > 1 ? $title . ' - Halaman ' . $n : $title;
+} );
+// 3. Thumbnail tanpa alt: pakai judul post yang ditampilkan (grid indeks, arsip, related).
+add_filter( 'wp_get_attachment_image_attributes', function ( $attr ) {
+	// Grid modules run their own WP_Query (in_the_loop() is false there), so use the current global post.
+	if ( empty( $attr['alt'] ) && ( $p = get_post() ) && 'attachment' !== $p->post_type ) {
+		$attr['alt'] = wp_strip_all_tags( get_the_title( $p ) );
+	}
+	return $attr;
+}, 25 );

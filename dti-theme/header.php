@@ -10,6 +10,7 @@
 </head>
 
 <body <?php body_class(); ?>>
+<?php if ( function_exists( 'wp_body_open' ) ) { wp_body_open(); } ?>
 
 <header id="header" class="dti-header">
 	<div class="dti-header__inner">
