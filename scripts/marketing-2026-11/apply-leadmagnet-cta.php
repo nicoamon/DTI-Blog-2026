@@ -26,14 +26,16 @@ $posts = [
              'Daftar periksa yang bisa langsung dipakai tim IT dan kepatuhan sebelum memusnahkan perangkat, termasuk bukti yang perlu disimpan untuk audit.',
              '/id/resource/datasan-disposal-compliance', 'Unduh checklist-nya →')],
 ];
-$marker = '/\s*<div class="dti-leadmagnet-cta"[^>]*>.*?<\/div>\s*/s';
+$marker = '/<div class="dti-leadmagnet-cta"[^>]*>.*?<\/div>/s';
+// Rollback removes exactly what the insert added (box + "\n\n"), so the content returns byte-identical.
+$markerRb = '/<div class="dti-leadmagnet-cta"[^>]*>.*?<\/div>(?:\n\n)?/s';
 foreach ($posts as $id => $cfg) {
   $p = get_post($id);
   if (!$p || $p->post_name !== $cfg['slug']) { WP_CLI::warning("$id missing or slug mismatch — skipped"); continue; }
   $c = $p->post_content;
   if ($rollback) {
     if (!preg_match($marker, $c)) { WP_CLI::log("$id: no lead-magnet box — nothing to roll back"); continue; }
-    $new = preg_replace($marker, "\n\n", $c, 1);
+    $new = preg_replace($markerRb, '', $c, 1);
   } else {
     if (preg_match($marker, $c)) { WP_CLI::log("$id: box already present"); continue; }
     preg_match_all('/<h2\b[^>]*>(.*?)<\/h2>/s', $c, $m, PREG_OFFSET_CAPTURE);
