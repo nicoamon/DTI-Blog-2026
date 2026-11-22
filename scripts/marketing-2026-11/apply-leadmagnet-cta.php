@@ -44,10 +44,17 @@ foreach ($posts as $id => $cfg) {
     $new = substr($c, 0, $pos) . $cfg['box'] . "\n\n" . substr($c, $pos);
   }
   $h2before = preg_match_all('/<h[1-6]\b/i', $c); $h2after = preg_match_all('/<h[1-6]\b/i', $new);
-  if ($h2before !== $h2after) WP_CLI::error("$id: heading count changed ($h2before -> $h2after) — aborted, nothing written");
+  if ($h2before !== $h2after) WP_CLI::error("$id: heading count changed ($h2before -> $h2after) — aborted before any write, nothing written");
+  $pending[$id] = [$new, $h2after, $cfg['h2']];
+}
+// Write only after every post passed its checks, so a failed check can never leave a half-applied run.
+$written = [];
+foreach ($pending ?? [] as $id => [$new, $headings, $h2]) {
   if (!$dry) {
     $r = wp_update_post(['ID' => $id, 'post_content' => wp_slash($new)], true);
-    if (is_wp_error($r)) WP_CLI::error("$id: " . $r->get_error_message());
+    if (is_wp_error($r) || !$r) WP_CLI::error("$id: " . (is_wp_error($r) ? $r->get_error_message() : 'update returned 0') . ' — ' . ($written ? 'already written: ' . implode(', ', $written) : 'nothing written'));
+    $written[] = $id;
   }
-  WP_CLI::success(($dry ? '[dry] ' : '') . "$id " . ($rollback ? 'box removed' : "box inserted before H2 '{$cfg['h2']}'") . " (headings $h2after)");
+  WP_CLI::success(($dry ? '[dry] ' : '') . "$id " . ($rollback ? 'box removed' : "box inserted before H2 '$h2'") . " (headings $headings)");
 }
+
