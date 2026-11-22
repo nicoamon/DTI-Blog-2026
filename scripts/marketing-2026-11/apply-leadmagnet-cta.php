@@ -36,18 +36,18 @@ foreach ($posts as $id => $cfg) {
     $new = preg_replace($marker, "\n\n", $c, 1);
   } else {
     if (preg_match($marker, $c)) { WP_CLI::log("$id: box already present"); continue; }
-    preg_match_all('/<h2\b[^>]*>(.*?)<\/h2>/s', $c, $m, PREG_OFFSET_CAPTURE);
+    preg_match_all('/<h2\b[^>]*>(.*?)<\/h2>/si', $c, $m, PREG_OFFSET_CAPTURE);
     if (count($m[0]) < 2) { WP_CLI::warning("$id: fewer than 2 H2 — skipped"); continue; }
     $h2text = trim(wp_strip_all_tags($m[1][1][0]));
     if ($h2text !== $cfg['h2']) { WP_CLI::warning("$id: 2nd H2 is '$h2text', expected '{$cfg['h2']}' — skipped"); continue; }
     $pos = $m[0][1][1];
     $new = substr($c, 0, $pos) . $cfg['box'] . "\n\n" . substr($c, $pos);
   }
-  $h2before = preg_match_all('/<h[1-6]\b/i', $c); $h2after = preg_match_all('/<h[1-6]\b/i', $new);
-  if ($h2before !== $h2after) WP_CLI::error("$id: heading count changed ($h2before -> $h2after) — aborted, nothing written");
+  $headingsBefore = preg_match_all('/<h[1-6]\b/i', $c); $headingsAfter = preg_match_all('/<h[1-6]\b/i', $new);
+  if ($headingsBefore !== $headingsAfter) WP_CLI::error("$id: heading count changed ($headingsBefore -> $headingsAfter) — aborted, nothing written");
   if (!$dry) {
     $r = wp_update_post(['ID' => $id, 'post_content' => wp_slash($new)], true);
     if (is_wp_error($r)) WP_CLI::error("$id: " . $r->get_error_message());
   }
-  WP_CLI::success(($dry ? '[dry] ' : '') . "$id " . ($rollback ? 'box removed' : "box inserted before H2 '{$cfg['h2']}'") . " (headings $h2after)");
+  WP_CLI::success(($dry ? '[dry] ' : '') . "$id " . ($rollback ? 'box removed' : "box inserted before H2 '{$cfg['h2']}'") . " (headings $headingsAfter)");
 }
