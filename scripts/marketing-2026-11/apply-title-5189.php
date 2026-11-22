@@ -19,16 +19,15 @@ if ($rollback) {
     WP_CLI::error("$id title/meta were changed after this script ran — not rolled back (would overwrite those edits). Current title: '$ot'. Append `force` to roll back anyway.");
   }
   $skipped = [];
-  if (!$dry) {
-    // An empty backup means Rank Math's default was in use: delete the meta instead of storing ''.
-    foreach (['rank_math_title', 'rank_math_description'] as $k) {
-      // No backup for this key (partial earlier run, manual cleanup…): get_post_meta() would return ''
-      // and the live value would be DELETED. Leave it untouched instead.
-      if (!metadata_exists('post', $id, "_dti_prev_$k")) { WP_CLI::warning("$id: no backup for $k — left as is"); $skipped[] = $k; continue; }
-      $prev = get_post_meta($id, "_dti_prev_$k", true);
-      if ($prev === '') delete_post_meta($id, $k); else update_post_meta($id, $k, wp_slash($prev));
-      delete_post_meta($id, "_dti_prev_$k"); // backup consumed — a later run takes a fresh one
-    }
+  // An empty backup means Rank Math's default was in use: delete the meta instead of storing ''.
+  foreach (['rank_math_title', 'rank_math_description'] as $k) {
+    // No backup for this key (partial earlier run, manual cleanup…): get_post_meta() would return ''
+    // and the live value would be DELETED. Leave it untouched instead.
+    if (!metadata_exists('post', $id, "_dti_prev_$k")) { WP_CLI::warning("$id: no backup for $k — left as is"); $skipped[] = $k; continue; }
+    if ($dry) continue; // the backup check above also runs in dry mode, so a dry run predicts a partial rollback
+    $prev = get_post_meta($id, "_dti_prev_$k", true);
+    if ($prev === '') delete_post_meta($id, $k); else update_post_meta($id, $k, wp_slash($prev));
+    delete_post_meta($id, "_dti_prev_$k"); // backup consumed — a later run takes a fresh one
   }
   if ($skipped) { WP_CLI::warning("$id: rollback PARSIAL — tidak dipulihkan: " . implode(', ', $skipped)); return; }
   WP_CLI::success(($dry ? '[dry] ' : '') . "$id rolled back"); return;
