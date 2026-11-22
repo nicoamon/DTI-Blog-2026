@@ -1,0 +1,29 @@
+#!/usr/bin/env python3
+"""Gate for pilot REWRITES (TULIS ULANG) of live posts: <dir> has baru.html + baru-meta.json.
+Usage: cek-tulis-ulang.py <dir> ...   exit 1 on any failure. Checks links live over HTTPS (own site)."""
+import re, sys, json, html, subprocess
+MODE2 = r'PTPN|Agrinas|TMS[ -]?BTN|CRM for Bank|\bAstra\b|Bank Saqu|FIF Group|negative EBITDA'
+def status(u):
+    u = u if u.startswith('http') else 'https://dtisolution.id' + u
+    return subprocess.run(['curl', '-s', '-o', '/dev/null', '-L', '--max-time', '15', '-w', '%{http_code}', u], capture_output=True, text=True).stdout
+bad = 0
+for d in sys.argv[1:]:
+    b = open(d + '/baru.html').read(); m = json.load(open(d + '/baru-meta.json')); ok = []
+    t = html.unescape(re.sub(r'<[^>]+>', ' ', b)); w = len(t.split())
+    snip = re.search(r'class="dti-snippet-answer".*?</strong>(.*?)</div>', b, re.S)
+    sw = len(html.unescape(re.sub('<[^>]+>', ' ', snip.group(1))).split()) if snip else 0
+    hrefs = re.findall(r'href="([^"]+)"', b)
+    own = [h for h in hrefs if h.startswith('/') or 'dtisolution.id' in h]
+    dead = [h for h in own if status(h) != '200']
+    ok += [('snippet 40–55 kata (%d)' % sw, 40 <= sw <= 58), ('panjang 800–1.600 (%d)' % w, 800 <= w <= 1600),
+           ('≥3 H2', len(re.findall(r'<h2\b', b)) >= 3), ('tanpa H1 di isi', '<h1' not in b),
+           ('tabel atau gambar', bool(re.search(r'<table|<img', b))), ('tautan produk', any('/id/produk/' in h for h in hrefs)),
+           ('CTA kontak', any('/id/kontak' in h for h in hrefs)), ('tanpa wa.me / request-demo', not any(('wa.me' in h or 'request-demo' in h) for h in hrefs)),
+           ('semua tautan internal 200' + (' ' + str(dead) if dead else ''), not dead),
+           ('tanpa tanda pisah', not re.search('[—–]', t)), ('Mode-2 bersih', not re.search(MODE2, t + json.dumps(m), re.I)),
+           ('tanpa FaceOffice', 'faceoffice' not in t.lower().replace(' ', '')),
+           ('post_title ≤70', 0 < len(m.get('post_title', '')) <= 70), ('rank_math_title ≤60', 0 < len(m.get('rank_math_title', '')) <= 60),
+           ('rank_math_description ≤155', 0 < len(m.get('rank_math_description', '')) <= 155), ('focus keyword', bool(m.get('rank_math_focus_keyword')))]
+    fails = [n for n, c in ok if not c]; bad += bool(fails)
+    print(d.rstrip('/').split('/')[-1], 'LULUS' if not fails else 'GAGAL: ' + '; '.join(fails), f'| {w} kata · snippet {sw} · {m.get("post_title","")[:60]}')
+sys.exit(1 if bad else 0)

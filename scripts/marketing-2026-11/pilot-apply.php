@@ -1,12 +1,13 @@
 <?php
 defined('WP_CLI') && WP_CLI || exit; // WP-CLI only
 /** Pilot humanizer (ACC Nico 22 Nov): ganti post_content post tayang dengan versi yang sudah lolos
- *  pilot-cek.py + reviewer + Mode-2. Judul, slug, meta Rank Math, H1 TIDAK disentuh.
+ *  gate + reviewer + Mode-2. Poles (batch 1): judul/meta/H1 TIDAK disentuh. Tulis ulang (batch 2; Nico: boleh
+ *  ganti judul): baru-meta.json ikut menetapkan post_title + Rank Math. Slug TIDAK pernah diubah.
  *  wp eval-file pilot-apply.php <ID> <dir> [dry] [force] --user=nico
  *    <dir> berisi asli.html (isi yang direview) dan baru.html (versi baru).
  *    Tanpa `force`: menolak bila isi saat ini ≠ asli.html (ada suntingan setelah review).
  *    `force` hanya untuk staging (salinan pratinjau).
- *  Rollback: post_content ← meta _dti_prev_content_pilot; hapus meta humanizer & _dti_pilot. */
+ *  Rollback: post_content ← meta _dti_prev_content_pilot (+ post_title/Rank Math ← _dti_prev_* bila tulis ulang); hapus meta humanizer & _dti_pilot. */
 [$id, $dir] = [(int) ($args[0] ?? 0), rtrim($args[1] ?? '', '/')];
 $dry = in_array('dry', $args, true); $force = in_array('force', $args, true);
 if (!$id || !is_readable("$dir/baru.html") || !is_readable("$dir/asli.html")) WP_CLI::error('Usage: <ID> <dir-with-asli.html-baru.html> [dry] [force]');
@@ -19,7 +20,16 @@ if (rtrim($p->post_content) !== rtrim($asli) && !$force) WP_CLI::error("$id: isi
 WP_CLI::log(($dry ? '[dry] ' : '') . "$id {$p->post_name}: " . strlen($p->post_content) . ' → ' . strlen($baru) . ' byte');
 if ($dry) return;
 if (!metadata_exists('post', $id, '_dti_prev_content_pilot')) update_post_meta($id, '_dti_prev_content_pilot', wp_slash($p->post_content));
-$r = wp_update_post(wp_slash(['ID' => $id, 'post_content' => $baru]), true);
+// Rewrites (TULIS ULANG) also carry baru-meta.json: new H1/post_title + Rank Math title/description/focus keyword.
+$meta = is_readable("$dir/baru-meta.json") ? json_decode(file_get_contents("$dir/baru-meta.json"), true) : null;
+$upd = ['ID' => $id, 'post_content' => $baru];
+if ($meta) {
+  foreach (['post_title', 'rank_math_title', 'rank_math_description', 'rank_math_focus_keyword'] as $k)
+    if (!metadata_exists('post', $id, "_dti_prev_$k")) update_post_meta($id, "_dti_prev_$k", wp_slash($k === 'post_title' ? $p->post_title : get_post_meta($id, $k, true)));
+  $upd['post_title'] = $meta['post_title'];
+}
+$r = wp_update_post(wp_slash($upd), true);
+if ($meta && !is_wp_error($r) && $r) foreach (['rank_math_title', 'rank_math_description', 'rank_math_focus_keyword'] as $k) update_post_meta($id, $k, wp_slash($meta[$k]));
 if (is_wp_error($r) || !$r) WP_CLI::error("$id: simpan gagal");
 update_post_meta($id, 'humanizer', "humanizer-amon@$ver");
 update_post_meta($id, '_dti_pilot', current_time('mysql'));
