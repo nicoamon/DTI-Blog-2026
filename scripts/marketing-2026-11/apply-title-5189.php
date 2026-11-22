@@ -12,7 +12,8 @@ $t = 'Pemusnahan Data Bank: Kewajiban POJK, PADK & Sertifikat %sep% %sitename%';
 $d = 'Kewajiban bank memusnahkan data menurut POJK 11/2022 & PADK: metode NIST 800-88, langkah audit-ready, dan sertifikat pemusnahan per nomor seri perangkat.';
 $ot = get_post_meta($id, 'rank_math_title', true); $od = get_post_meta($id, 'rank_math_description', true);
 if ($rollback) {
-  if (!metadata_exists('post', $id, '_dti_prev_rank_math_title')) WP_CLI::error('no backup — nothing to roll back');
+  // At least one backup must exist; the loop below restores each key only from its own backup.
+  if (!metadata_exists('post', $id, '_dti_prev_rank_math_title') && !metadata_exists('post', $id, '_dti_prev_rank_math_description')) WP_CLI::error('no backup — nothing to roll back');
   // Only undo OUR values: if the team has since edited title/meta in Rank Math, a rollback would
   // silently overwrite their work. Append `force` to roll back anyway.
   if (($ot !== $t || $od !== $d) && !in_array('force', $args ?? [], true)) {
