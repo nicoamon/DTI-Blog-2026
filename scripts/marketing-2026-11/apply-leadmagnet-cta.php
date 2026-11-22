@@ -9,6 +9,8 @@ defined('WP_CLI') && WP_CLI || exit; // WP-CLI only
  *  wp eval-file <this file> --user=nico [dry] | rollback [dry] */
 $dry = in_array('dry', $args ?? [], true);
 $rollback = in_array('rollback', $args ?? [], true);
+if (!$dry && !current_user_can('unfiltered_html')) WP_CLI::error('Run with --user=nico (needs unfiltered_html): without it wp_update_post re-filters the whole post through kses. Nothing written.');
+$unknown = array_diff($args ?? [], ['dry', 'rollback']); if ($unknown) WP_CLI::error('Unknown argument(s): ' . implode(', ', $unknown) . ' — nothing written. Allowed: dry, rollback.');
 $box = static function (string $title, string $text, string $href, string $label): string {
   return '<div class="dti-leadmagnet-cta" style="margin:28px 0;padding:18px 20px;border-left:4px solid #2C4A7E;background:#f4f6fa;border-radius:6px">'
     . '<strong>' . esc_html($title) . '</strong><br>' . esc_html($text)
@@ -26,28 +28,37 @@ $posts = [
              'Daftar periksa yang bisa langsung dipakai tim IT dan kepatuhan sebelum memusnahkan perangkat, termasuk bukti yang perlu disimpan untuk audit.',
              '/id/resource/datasan-disposal-compliance', 'Unduh checklist-nya →')],
 ];
-$marker = '/\s*<div class="dti-leadmagnet-cta"[^>]*>.*?<\/div>\s*/s';
+$marker = '/<div class="dti-leadmagnet-cta"[^>]*>.*?<\/div>/s';
+// Rollback removes exactly what the insert added (box + "\n\n"), so the content returns byte-identical.
+$markerRb = '/<div class="dti-leadmagnet-cta"[^>]*>.*?<\/div>(?:\n\n)?/s';
 foreach ($posts as $id => $cfg) {
   $p = get_post($id);
   if (!$p || $p->post_name !== $cfg['slug']) { WP_CLI::warning("$id missing or slug mismatch — skipped"); continue; }
   $c = $p->post_content;
   if ($rollback) {
     if (!preg_match($marker, $c)) { WP_CLI::log("$id: no lead-magnet box — nothing to roll back"); continue; }
-    $new = preg_replace($marker, "\n\n", $c, 1);
+    $new = preg_replace($markerRb, '', $c, 1);
   } else {
     if (preg_match($marker, $c)) { WP_CLI::log("$id: box already present"); continue; }
-    preg_match_all('/<h2\b[^>]*>(.*?)<\/h2>/s', $c, $m, PREG_OFFSET_CAPTURE);
+    preg_match_all('/<h2\b[^>]*>(.*?)<\/h2>/si', $c, $m, PREG_OFFSET_CAPTURE);
     if (count($m[0]) < 2) { WP_CLI::warning("$id: fewer than 2 H2 — skipped"); continue; }
     $h2text = trim(wp_strip_all_tags($m[1][1][0]));
     if ($h2text !== $cfg['h2']) { WP_CLI::warning("$id: 2nd H2 is '$h2text', expected '{$cfg['h2']}' — skipped"); continue; }
     $pos = $m[0][1][1];
     $new = substr($c, 0, $pos) . $cfg['box'] . "\n\n" . substr($c, $pos);
   }
-  $h2before = preg_match_all('/<h[1-6]\b/i', $c); $h2after = preg_match_all('/<h[1-6]\b/i', $new);
-  if ($h2before !== $h2after) WP_CLI::error("$id: heading count changed ($h2before -> $h2after) — aborted, nothing written");
+  $headingsBefore = preg_match_all('/<h[1-6]\b/i', $c); $headingsAfter = preg_match_all('/<h[1-6]\b/i', $new);
+  if ($headingsBefore !== $headingsAfter) WP_CLI::error("$id: heading count changed ($headingsBefore -> $headingsAfter) — aborted before any write, nothing written");
+  $pending[$id] = [$new, $headingsAfter, $cfg['h2']];
+}
+// Write only after every post passed its checks, so a failed check can never leave a half-applied run.
+$written = [];
+foreach ($pending ?? [] as $id => [$new, $headings, $h2]) {
   if (!$dry) {
     $r = wp_update_post(['ID' => $id, 'post_content' => wp_slash($new)], true);
-    if (is_wp_error($r)) WP_CLI::error("$id: " . $r->get_error_message());
+    if (is_wp_error($r) || !$r) WP_CLI::error("$id: " . (is_wp_error($r) ? $r->get_error_message() : 'update returned 0') . ' — ' . ($written ? 'already written: ' . implode(', ', $written) : 'nothing written'));
+    $written[] = $id;
   }
-  WP_CLI::success(($dry ? '[dry] ' : '') . "$id " . ($rollback ? 'box removed' : "box inserted before H2 '{$cfg['h2']}'") . " (headings $h2after)");
+  WP_CLI::success(($dry ? '[dry] ' : '') . "$id " . ($rollback ? 'box removed' : "box inserted before H2 '$h2'") . " (headings $headings)");
 }
+

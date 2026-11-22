@@ -12,23 +12,26 @@ $t = 'Pemusnahan Data Bank: Kewajiban POJK, PADK & Sertifikat %sep% %sitename%';
 $d = 'Kewajiban bank memusnahkan data menurut POJK 11/2022 & PADK: metode NIST 800-88, langkah audit-ready, dan sertifikat pemusnahan per nomor seri perangkat.';
 $ot = get_post_meta($id, 'rank_math_title', true); $od = get_post_meta($id, 'rank_math_description', true);
 if ($rollback) {
-  if (!metadata_exists('post', $id, '_dti_prev_rank_math_title')) WP_CLI::error('no backup — nothing to roll back');
+  // At least one backup must exist; the loop below restores each key only from its own backup.
+  if (!metadata_exists('post', $id, '_dti_prev_rank_math_title') && !metadata_exists('post', $id, '_dti_prev_rank_math_description')) WP_CLI::error('no backup — nothing to roll back');
   // Only undo OUR values: if the team has since edited title/meta in Rank Math, a rollback would
   // silently overwrite their work. Append `force` to roll back anyway.
   if (($ot !== $t || $od !== $d) && !in_array('force', $args ?? [], true)) {
     WP_CLI::error("$id title/meta were changed after this script ran — not rolled back (would overwrite those edits). Current title: '$ot'. Append `force` to roll back anyway.");
   }
+  $skipped = [];
   if (!$dry) {
     // An empty backup means Rank Math's default was in use: delete the meta instead of storing ''.
     foreach (['rank_math_title', 'rank_math_description'] as $k) {
       // No backup for this key (partial earlier run, manual cleanup…): get_post_meta() would return ''
       // and the live value would be DELETED. Leave it untouched instead.
-      if (!metadata_exists('post', $id, "_dti_prev_$k")) { WP_CLI::warning("$id: no backup for $k — left as is"); continue; }
+      if (!metadata_exists('post', $id, "_dti_prev_$k")) { WP_CLI::warning("$id: no backup for $k — left as is"); $skipped[] = $k; continue; }
       $prev = get_post_meta($id, "_dti_prev_$k", true);
       if ($prev === '') delete_post_meta($id, $k); else update_post_meta($id, $k, wp_slash($prev));
       delete_post_meta($id, "_dti_prev_$k"); // backup consumed — a later run takes a fresh one
     }
   }
+  if ($skipped) { WP_CLI::warning("$id: rollback PARSIAL — tidak dipulihkan: " . implode(', ', $skipped)); return; }
   WP_CLI::success(($dry ? '[dry] ' : '') . "$id rolled back"); return;
 }
 if ($ot === $t && $od === $d) { WP_CLI::log("$id title/meta already set"); return; }

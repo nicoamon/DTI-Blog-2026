@@ -41,7 +41,11 @@ if ($tmp === null) { $re_err = $re_err !== '' ? $re_err : preg_last_error_msg();
 // when the parent output still has entry-title h2s or a mismatched heading after the fix.
 if ($re_err !== '') {
   $dti_related_log('heading fix regex failed (' . $re_err . ') — headings left as Gridlove renders them');
-} elseif (preg_match('~<h2\s[^>]*(?<=\s)class="(?:[^"]*\s)?entry-title(?=[\s"])~', $html) || preg_match('~<h4\s+class="h2">[^<]*</h2>~', $html)) {
+} elseif (preg_match('~<h2\s[^>]*(?<=\s)class="(?:[^"]*\s)?entry-title(?=[\s"])~', $html) || preg_match('~<h4\s+class="h2">[^<]*</h2>~', $html)
+  // Narrow signal for markup the fix cannot match at all (class renamed, single quotes): the cards are the only
+  // <h2 …> opening tags in Gridlove's output, so any <h2 with nothing converted means the fix was bypassed.
+  // Gridlove switching to <h3> itself leaves no <h2 and stays silent.
+  || (!$n_cards && preg_match('~<h2[\s>]~', $orig))) {
   $dti_related_log('heading fix did not apply (Gridlove markup changed?) — cards fixed: ' . (int) $n_cards . ', heading fixed: ' . (int) $n_head);
 }
 echo $html;
