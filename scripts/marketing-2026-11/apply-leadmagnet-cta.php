@@ -9,6 +9,7 @@ defined('WP_CLI') && WP_CLI || exit; // WP-CLI only
  *  wp eval-file <this file> --user=nico [dry] | rollback [dry] */
 $dry = in_array('dry', $args ?? [], true);
 $rollback = in_array('rollback', $args ?? [], true);
+$unknown = array_diff($args ?? [], ['dry', 'rollback']); if ($unknown) WP_CLI::error('Unknown argument(s): ' . implode(', ', $unknown) . ' — nothing written. Allowed: dry, rollback.');
 $box = static function (string $title, string $text, string $href, string $label): string {
   return '<div class="dti-leadmagnet-cta" style="margin:28px 0;padding:18px 20px;border-left:4px solid #2C4A7E;background:#f4f6fa;border-radius:6px">'
     . '<strong>' . esc_html($title) . '</strong><br>' . esc_html($text)
