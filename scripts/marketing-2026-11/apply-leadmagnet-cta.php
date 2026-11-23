@@ -35,7 +35,8 @@ $markerRb = '/<div\b[^>]*\bdti-leadmagnet-cta\b[^>]*>.*?<\/div>(?:\n\n)?/s';
 foreach ($posts as $id => $cfg) {
   $p = get_post($id);
   if (!$p || $p->post_name !== $cfg['slug']) { WP_CLI::warning("$id missing or slug mismatch — skipped"); continue; }
-  if ($p->post_type !== 'post' || $p->post_status !== 'publish') { WP_CLI::warning("$id is {$p->post_type}/{$p->post_status}, not a published post — skipped"); continue; }
+  // Insert only into published posts; a rollback must still reach a post that was unpublished after the box went in.
+  if (!$rollback && ($p->post_type !== 'post' || $p->post_status !== 'publish')) { WP_CLI::warning("$id is {$p->post_type}/{$p->post_status}, not a published post — skipped"); continue; }
   $c = $p->post_content;
   if ($rollback) {
     if (!preg_match($marker, $c)) { WP_CLI::log("$id: no lead-magnet box — nothing to roll back"); continue; }

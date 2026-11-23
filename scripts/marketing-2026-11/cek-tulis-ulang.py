@@ -15,7 +15,9 @@ for d in sys.argv[1:]:
     snip = re.search(r'class="dti-snippet-answer".*?</strong>(.*?)</div>', b, re.S)
     sw = len(html.unescape(re.sub('<[^>]+>', ' ', snip.group(1))).split()) if snip else 0
     hrefs = [x or y for x, y in re.findall(r'''href\s*=\s*(?:"([^"]*)"|'([^']*)')''', b, re.I)]  # both quote styles
-    host = lambda h: (urllib.parse.urlparse(h).hostname or '').lower()
+    def host(h):
+        try: return (urllib.parse.urlparse(h).hostname or '').lower()
+        except ValueError: return ''  # malformed URL: not ours, and never a crash
     own = [h for h in hrefs if h.startswith('/') or host(h) in ('dtisolution.id', 'www.dtisolution.id')]
     dead = [h for h in own if status(h) != '200']
     ok += [('snippet 40–55 kata (%d)' % sw, 40 <= sw <= 55), ('panjang 800–1.600 (%d)' % w, 800 <= w <= 1600),

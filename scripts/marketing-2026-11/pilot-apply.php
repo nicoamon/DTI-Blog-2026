@@ -14,7 +14,7 @@ $unknown = array_filter(array_slice($args, 2), fn($a) => !in_array($a, ['dry', '
 if ($unknown) WP_CLI::error('Argumen tidak dikenal: ' . implode(', ', $unknown) . ' — tidak ada yang ditulis. Boleh: dry, force, humanizer=<x.y.z>.');
 // `force` overwrites whatever is in the post, so it is refused outside staging (prod must match the reviewed asli.html).
 if ($force && strpos(home_url(), 'dti.amon.id') === false) WP_CLI::error('force hanya untuk staging — tidak ada yang ditulis.');
-if (!$id || !is_readable("$dir/baru.html") || !is_readable("$dir/asli.html")) WP_CLI::error('Usage: <ID> <dir-with-asli.html-baru.html> [dry] [force]');
+if (!$id || !is_readable("$dir/baru.html") || !is_readable("$dir/asli.html")) WP_CLI::error('Usage: <ID> <dir-with-asli.html-baru.html> humanizer=<x.y.z> [dry] [force]');
 if (!$dry && !current_user_can('unfiltered_html')) WP_CLI::error('Run with --user=nico — nothing changed.');
 $p = get_post($id); if (!$p || $p->post_type !== 'post') WP_CLI::error("$id bukan post");
 $asli = file_get_contents("$dir/asli.html"); $baru = file_get_contents("$dir/baru.html");
@@ -35,7 +35,8 @@ if ($same && !is_readable("$dir/baru-meta.json")) { WP_CLI::log("$id: sudah vers
 if (!$same && rtrim($p->post_content) !== rtrim($asli) && !$force) WP_CLI::error("$id: isi saat ini berbeda dari asli.html (ada suntingan setelah review) — tidak ditulis.");
 WP_CLI::log(($dry ? '[dry] ' : '') . "$id {$p->post_name}: " . strlen($p->post_content) . ' → ' . strlen($baru) . ' byte');
 if ($dry) return;
-if (!metadata_exists('post', $id, '_dti_prev_content_pilot')) update_post_meta($id, '_dti_prev_content_pilot', wp_slash($p->post_content));
+// Never store the NEW content as the backup: when the post already holds baru.html there is no original left to save here.
+if (!$same && !metadata_exists('post', $id, '_dti_prev_content_pilot')) update_post_meta($id, '_dti_prev_content_pilot', wp_slash($p->post_content));
 // Rewrites (TULIS ULANG) also carry baru-meta.json: new H1/post_title + Rank Math title/description/focus keyword.
 $upd = ['ID' => $id, 'post_content' => $baru];
 if ($meta) {
