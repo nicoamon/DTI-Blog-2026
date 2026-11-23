@@ -3,7 +3,7 @@ defined('WP_CLI') && WP_CLI || exit; // WP-CLI only
 /** Pilot humanizer (ACC Nico 22 Nov): ganti post_content post tayang dengan versi yang sudah lolos
  *  gate + reviewer + Mode-2. Poles (batch 1): judul/meta/H1 TIDAK disentuh. Tulis ulang (batch 2; Nico: boleh
  *  ganti judul): baru-meta.json ikut menetapkan post_title + Rank Math. Slug TIDAK pernah diubah.
- *  wp eval-file pilot-apply.php <ID> <dir> [dry] [force] --user=nico
+ *  wp eval-file pilot-apply.php <ID> <dir> humanizer=<x.y.z> [dry] [force] --user=nico
  *    <dir> berisi asli.html (isi yang direview) dan baru.html (versi baru).
  *    Tanpa `force`: menolak bila isi saat ini ≠ asli.html (ada suntingan setelah review).
  *    `force` hanya untuk staging (salinan pratinjau).
@@ -14,7 +14,10 @@ if (!$id || !is_readable("$dir/baru.html") || !is_readable("$dir/asli.html")) WP
 if (!$dry && !current_user_can('unfiltered_html')) WP_CLI::error('Run with --user=nico — nothing changed.');
 $p = get_post($id); if (!$p || $p->post_type !== 'post') WP_CLI::error("$id bukan post");
 $asli = file_get_contents("$dir/asli.html"); $baru = file_get_contents("$dir/baru.html");
-$ver = trim(@file_get_contents('/tmp/humanizer-amon.VERSION') ?: '1.0.0');
+// The stamp humanizer-amon@<versi> is a publication requirement, so the version must be passed explicitly
+// (humanizer=<x.y.z>, read by the caller from the skill's VERSION file), never taken from a world-writable /tmp file.
+$ver = ''; foreach ($args as $a) if (preg_match('/^humanizer=(\d+\.\d+\.\d+)$/', $a, $mm)) $ver = $mm[1];
+if ($ver === '') WP_CLI::error('Wajib: humanizer=<x.y.z> (isi 00-Core/skills/humanizer-amon/VERSION) — tidak ada yang ditulis.');
 if (rtrim($p->post_content) === rtrim($baru)) { WP_CLI::log("$id: sudah versi baru"); return; }
 if (rtrim($p->post_content) !== rtrim($asli) && !$force) WP_CLI::error("$id: isi saat ini berbeda dari asli.html (ada suntingan setelah review) — tidak ditulis.");
 WP_CLI::log(($dry ? '[dry] ' : '') . "$id {$p->post_name}: " . strlen($p->post_content) . ' → ' . strlen($baru) . ' byte');
