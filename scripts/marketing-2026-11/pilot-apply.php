@@ -3,25 +3,40 @@ defined('WP_CLI') && WP_CLI || exit; // WP-CLI only
 /** Pilot humanizer (ACC Nico 22 Nov): ganti post_content post tayang dengan versi yang sudah lolos
  *  gate + reviewer + Mode-2. Poles (batch 1): judul/meta/H1 TIDAK disentuh. Tulis ulang (batch 2; Nico: boleh
  *  ganti judul): baru-meta.json ikut menetapkan post_title + Rank Math. Slug TIDAK pernah diubah.
- *  wp eval-file pilot-apply.php <ID> <dir> [dry] [force] --user=nico
+ *  wp eval-file pilot-apply.php <ID> <dir> humanizer=<x.y.z> [dry] [force] --user=nico
  *    <dir> berisi asli.html (isi yang direview) dan baru.html (versi baru).
  *    Tanpa `force`: menolak bila isi saat ini ≠ asli.html (ada suntingan setelah review).
  *    `force` hanya untuk staging (salinan pratinjau).
  *  Rollback: post_content ← meta _dti_prev_content_pilot (+ post_title/Rank Math ← _dti_prev_* bila tulis ulang); hapus meta humanizer & _dti_pilot. */
 [$id, $dir] = [(int) ($args[0] ?? 0), rtrim($args[1] ?? '', '/')];
 $dry = in_array('dry', $args, true); $force = in_array('force', $args, true);
+$unknown = array_filter(array_slice($args, 2), fn($a) => !in_array($a, ['dry', 'force'], true) && !preg_match('/^humanizer=/', $a));
+if ($unknown) WP_CLI::error('Argumen tidak dikenal: ' . implode(', ', $unknown) . ' — tidak ada yang ditulis. Boleh: dry, force, humanizer=<x.y.z>.');
+// `force` overwrites whatever is in the post, so it is refused outside staging (prod must match the reviewed asli.html).
+if ($force && strpos(home_url(), 'dti.amon.id') === false) WP_CLI::error('force hanya untuk staging — tidak ada yang ditulis.');
 if (!$id || !is_readable("$dir/baru.html") || !is_readable("$dir/asli.html")) WP_CLI::error('Usage: <ID> <dir-with-asli.html-baru.html> [dry] [force]');
 if (!$dry && !current_user_can('unfiltered_html')) WP_CLI::error('Run with --user=nico — nothing changed.');
 $p = get_post($id); if (!$p || $p->post_type !== 'post') WP_CLI::error("$id bukan post");
 $asli = file_get_contents("$dir/asli.html"); $baru = file_get_contents("$dir/baru.html");
-$ver = trim(@file_get_contents('/tmp/humanizer-amon.VERSION') ?: '1.0.0');
-if (rtrim($p->post_content) === rtrim($baru)) { WP_CLI::log("$id: sudah versi baru"); return; }
-if (rtrim($p->post_content) !== rtrim($asli) && !$force) WP_CLI::error("$id: isi saat ini berbeda dari asli.html (ada suntingan setelah review) — tidak ditulis.");
+// baru-meta.json (rewrites only) is validated BEFORE anything is written: a broken file must not leave new content under the old title.
+$meta = null;
+if (is_readable("$dir/baru-meta.json")) {
+  $meta = json_decode(file_get_contents("$dir/baru-meta.json"), true);
+  foreach (['post_title', 'rank_math_title', 'rank_math_description', 'rank_math_focus_keyword'] as $k)
+    if (!is_array($meta) || !isset($meta[$k]) || !is_string($meta[$k]) || trim($meta[$k]) === '') WP_CLI::error("$id: baru-meta.json rusak atau '$k' kosong — tidak ada yang ditulis.");
+}
+// The stamp humanizer-amon@<versi> is a publication requirement, so the version must be passed explicitly
+// (humanizer=<x.y.z>, read by the caller from the skill's VERSION file), never taken from a world-writable /tmp file.
+$ver = ''; foreach ($args as $a) if (preg_match('/^humanizer=(\d+\.\d+\.\d+)$/', $a, $mm)) $ver = $mm[1];
+if ($ver === '') WP_CLI::error('Wajib: humanizer=<x.y.z> (isi 00-Core/skills/humanizer-amon/VERSION) — tidak ada yang ditulis.');
+// Content already new: stop only when there is no meta to (re)apply, so a run that failed half-way can be repeated.
+$same = rtrim($p->post_content) === rtrim($baru);
+if ($same && !is_readable("$dir/baru-meta.json")) { WP_CLI::log("$id: sudah versi baru"); return; }
+if (!$same && rtrim($p->post_content) !== rtrim($asli) && !$force) WP_CLI::error("$id: isi saat ini berbeda dari asli.html (ada suntingan setelah review) — tidak ditulis.");
 WP_CLI::log(($dry ? '[dry] ' : '') . "$id {$p->post_name}: " . strlen($p->post_content) . ' → ' . strlen($baru) . ' byte');
 if ($dry) return;
 if (!metadata_exists('post', $id, '_dti_prev_content_pilot')) update_post_meta($id, '_dti_prev_content_pilot', wp_slash($p->post_content));
 // Rewrites (TULIS ULANG) also carry baru-meta.json: new H1/post_title + Rank Math title/description/focus keyword.
-$meta = is_readable("$dir/baru-meta.json") ? json_decode(file_get_contents("$dir/baru-meta.json"), true) : null;
 $upd = ['ID' => $id, 'post_content' => $baru];
 if ($meta) {
   foreach (['post_title', 'rank_math_title', 'rank_math_description', 'rank_math_focus_keyword'] as $k)
@@ -33,5 +48,5 @@ if ($meta && !is_wp_error($r) && $r) foreach (['rank_math_title', 'rank_math_des
 if (is_wp_error($r) || !$r) WP_CLI::error("$id: simpan gagal");
 update_post_meta($id, 'humanizer', "humanizer-amon@$ver");
 update_post_meta($id, '_dti_pilot', current_time('mysql'));
-$ok = rtrim(get_post($id)->post_content) === rtrim($baru);
-WP_CLI::success("$id diganti (humanizer-amon@$ver)" . ($ok ? '' : ' — PERINGATAN: isi tersimpan berbeda dari baru.html'));
+if (rtrim(get_post($id)->post_content) !== rtrim($baru)) WP_CLI::error("$id: isi tersimpan BERBEDA dari baru.html — periksa post; isi lama ada di meta _dti_prev_content_pilot.");
+WP_CLI::success("$id diganti (humanizer-amon@$ver)");
