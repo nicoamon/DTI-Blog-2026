@@ -20,8 +20,8 @@ for d in sys.argv[1:]:
            ('tabel atau gambar', bool(re.search(r'<table|<img', b))), ('tautan produk', any('/id/produk/' in h for h in hrefs)),
            ('CTA kontak', any('/id/kontak' in h for h in hrefs)), ('tanpa wa.me / request-demo', not any(('wa.me' in h or 'request-demo' in h) for h in hrefs)),
            ('semua tautan internal 200' + (' ' + str(dead) if dead else ''), not dead),
-           ('tanpa tanda pisah', not re.search('[—–]', t)), ('Mode-2 bersih', not re.search(MODE2, t + json.dumps(m), re.I)),
-           ('tanpa FaceOffice', 'faceoffice' not in t.lower().replace(' ', '')),
+           ('tanpa tanda pisah', not re.search('[—–]', t)), ('Mode-2 bersih (HTML mentah + meta)', not re.search(MODE2, b + json.dumps(m, ensure_ascii=False), re.I)),
+           ('tanpa FaceOffice (HTML mentah + meta)', not re.search(r'face\s*office', b + json.dumps(m, ensure_ascii=False), re.I)),
            ('post_title ≤70', 0 < len(m.get('post_title', '')) <= 70), ('rank_math_title ≤60', 0 < len(m.get('rank_math_title', '')) <= 60),
            ('rank_math_description ≤155', 0 < len(m.get('rank_math_description', '')) <= 155), ('focus keyword', bool(m.get('rank_math_focus_keyword')))]
     fails = [n for n, c in ok if not c]; bad += bool(fails)
