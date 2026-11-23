@@ -7,7 +7,8 @@ def blocks(s): return re.findall(r'<!--.*?-->', s, re.S)                  # Gute
 def heads(s): return [re.sub(r'\s+', ' ', h).strip() for h in re.findall(r'<h[1-6][^>]*>(.*?)</h[1-6]>', s, re.S)]
 def links(s): return re.findall(r'<a\b[^>]*>(.*?)</a>', s, re.S)
 def cells(s): return re.findall(r'<t[hd]\b[^>]*>(.*?)</t[hd]>', s, re.S)
-def keep(s):  return re.findall(r'<(div|p)[^>]*class="[^"]*(dti-snippet-answer|dti-product-cta|dti-leadmagnet-cta|dti-related-links|dfig)[^"]*".*?</\1>', s, re.S)
+def keep(s):  # the WHOLE protected box (tags and text), not just its tag/class pair
+    return [m.group(0) for m in re.finditer(r'<(div|p)[^>]*class="[^"]*(?:dti-snippet-answer|dti-product-cta|dti-leadmagnet-cta|dti-related-links|dfig)[^"]*".*?</\1>', s, re.S)]
 def text(s):  return html.unescape(re.sub(r'<[^>]+>', ' ', re.sub(r'<!--.*?-->|<style.*?</style>', '', s, flags=re.S)))
 bad = 0
 for d in sys.argv[1:]:
@@ -18,7 +19,7 @@ for d in sys.argv[1:]:
     chk('heading identik', heads(a) == heads(b))
     chk('tautan (href+anchor) identik', links(a) == links(b))
     chk('sel tabel identik', cells(a) == cells(b))
-    chk('kotak terlindung identik', [m for m in re.finditer('x', '')] == [] and keep(a) == keep(b))
+    chk('kotak terlindung identik (isi)', keep(a) == keep(b))
     wa, wb = len(text(a).split()), len(text(b).split())
     chk(f'panjang ±10% ({wa}→{wb})', abs(wb - wa) <= 0.10 * wa)
     new_dash = len(re.findall('[—–]', text(b))) - len(re.findall('[—–]', text(a)))
