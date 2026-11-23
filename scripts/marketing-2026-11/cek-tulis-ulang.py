@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """Gate for pilot REWRITES (TULIS ULANG) of live posts: <dir> has baru.html + baru-meta.json.
 Usage: cek-tulis-ulang.py <dir> ...   exit 1 on any failure. Checks links live over HTTPS (own site)."""
-import re, sys, json, html, subprocess
+import os, re, sys, json, html, subprocess
 MODE2 = r'PTPN|Agrinas|TMS[ -]?BTN|CRM for Bank|\bAstra\b|Bank Saqu|FIF Group|negative EBITDA'
+BASE = os.environ.get('BASE', 'https://dtisolution.id')  # e.g. BASE=https://dti.amon.id to check against staging
 def status(u):
-    u = u if u.startswith('http') else 'https://dtisolution.id' + u
-    return subprocess.run(['curl', '-s', '-o', '/dev/null', '-L', '--max-time', '15', '-w', '%{http_code}', u], capture_output=True, text=True).stdout
+    # No -L: a link to a post that was taken down (301 to the blog home or its twin) must fail, not pass.
+    u = u if u.startswith('http') else BASE + u
+    return subprocess.run(['curl', '-s', '-o', '/dev/null', '--max-time', '15', '-w', '%{http_code}', u], capture_output=True, text=True).stdout
 bad = 0
 for d in sys.argv[1:]:
     b = open(d + '/baru.html').read(); m = json.load(open(d + '/baru-meta.json')); ok = []
