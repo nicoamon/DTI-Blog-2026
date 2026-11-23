@@ -6,11 +6,11 @@ defined('WP_CLI') && WP_CLI || exit; // WP-CLI only
  *  <strong>, not a heading, so the article outline is unchanged. Existing product CTA untouched.
  *  Internal links are relative and carry no UTM. Idempotent (marker class dti-leadmagnet-cta).
  *  Post 5189 is never touched (title test until 13 Dec).
- *  wp eval-file <this file> --user=nico [dry] | rollback [dry] */
+ *  wp eval-file <this file> --user=<admin> [dry] | rollback [dry] */
 $dry = in_array('dry', $args ?? [], true);
 $rollback = in_array('rollback', $args ?? [], true);
 $unknown = array_diff($args ?? [], ['dry', 'rollback']); if ($unknown) WP_CLI::error('Unknown argument(s): ' . implode(', ', $unknown) . ' — nothing written. Allowed: dry, rollback.');
-if (!$dry && !current_user_can('unfiltered_html')) WP_CLI::error('Run with --user=nico (needs unfiltered_html): without it wp_update_post re-filters the whole post through kses. Nothing written.');
+if (!$dry && !current_user_can('unfiltered_html')) WP_CLI::error('Run with --user=<admin> (needs unfiltered_html): without it wp_update_post re-filters the whole post through kses. Nothing written.');
 $box = static function (string $title, string $text, string $href, string $label): string {
   return '<div class="dti-leadmagnet-cta" style="margin:28px 0;padding:18px 20px;border-left:4px solid #2C4A7E;background:#f4f6fa;border-radius:6px">'
     . '<strong>' . esc_html($title) . '</strong><br>' . esc_html($text)
