@@ -10,6 +10,10 @@ defined('WP_CLI') && WP_CLI || exit; // WP-CLI only
  *  Rollback: post_content ← meta _dti_prev_content_pilot (+ post_title/Rank Math ← _dti_prev_* bila tulis ulang); hapus meta humanizer & _dti_pilot. */
 [$id, $dir] = [(int) ($args[0] ?? 0), rtrim($args[1] ?? '', '/')];
 $dry = in_array('dry', $args, true); $force = in_array('force', $args, true);
+$unknown = array_filter(array_slice($args, 2), fn($a) => !in_array($a, ['dry', 'force'], true) && !preg_match('/^humanizer=/', $a));
+if ($unknown) WP_CLI::error('Argumen tidak dikenal: ' . implode(', ', $unknown) . ' — tidak ada yang ditulis. Boleh: dry, force, humanizer=<x.y.z>.');
+// `force` overwrites whatever is in the post, so it is refused outside staging (prod must match the reviewed asli.html).
+if ($force && strpos(home_url(), 'dti.amon.id') === false) WP_CLI::error('force hanya untuk staging — tidak ada yang ditulis.');
 if (!$id || !is_readable("$dir/baru.html") || !is_readable("$dir/asli.html")) WP_CLI::error('Usage: <ID> <dir-with-asli.html-baru.html> [dry] [force]');
 if (!$dry && !current_user_can('unfiltered_html')) WP_CLI::error('Run with --user=nico — nothing changed.');
 $p = get_post($id); if (!$p || $p->post_type !== 'post') WP_CLI::error("$id bukan post");
