@@ -14,6 +14,13 @@ if (!$id || !is_readable("$dir/baru.html") || !is_readable("$dir/asli.html")) WP
 if (!$dry && !current_user_can('unfiltered_html')) WP_CLI::error('Run with --user=nico — nothing changed.');
 $p = get_post($id); if (!$p || $p->post_type !== 'post') WP_CLI::error("$id bukan post");
 $asli = file_get_contents("$dir/asli.html"); $baru = file_get_contents("$dir/baru.html");
+// baru-meta.json (rewrites only) is validated BEFORE anything is written: a broken file must not leave new content under the old title.
+$meta = null;
+if (is_readable("$dir/baru-meta.json")) {
+  $meta = json_decode(file_get_contents("$dir/baru-meta.json"), true);
+  foreach (['post_title', 'rank_math_title', 'rank_math_description', 'rank_math_focus_keyword'] as $k)
+    if (!is_array($meta) || !isset($meta[$k]) || !is_string($meta[$k]) || trim($meta[$k]) === '') WP_CLI::error("$id: baru-meta.json rusak atau '$k' kosong — tidak ada yang ditulis.");
+}
 $ver = trim(@file_get_contents('/tmp/humanizer-amon.VERSION') ?: '1.0.0');
 if (rtrim($p->post_content) === rtrim($baru)) { WP_CLI::log("$id: sudah versi baru"); return; }
 if (rtrim($p->post_content) !== rtrim($asli) && !$force) WP_CLI::error("$id: isi saat ini berbeda dari asli.html (ada suntingan setelah review) — tidak ditulis.");
@@ -21,7 +28,6 @@ WP_CLI::log(($dry ? '[dry] ' : '') . "$id {$p->post_name}: " . strlen($p->post_c
 if ($dry) return;
 if (!metadata_exists('post', $id, '_dti_prev_content_pilot')) update_post_meta($id, '_dti_prev_content_pilot', wp_slash($p->post_content));
 // Rewrites (TULIS ULANG) also carry baru-meta.json: new H1/post_title + Rank Math title/description/focus keyword.
-$meta = is_readable("$dir/baru-meta.json") ? json_decode(file_get_contents("$dir/baru-meta.json"), true) : null;
 $upd = ['ID' => $id, 'post_content' => $baru];
 if ($meta) {
   foreach (['post_title', 'rank_math_title', 'rank_math_description', 'rank_math_focus_keyword'] as $k)
