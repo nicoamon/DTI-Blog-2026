@@ -28,9 +28,10 @@ $posts = [
              'Daftar periksa yang bisa langsung dipakai tim IT dan kepatuhan sebelum memusnahkan perangkat, termasuk bukti yang perlu disimpan untuk audit.',
              '/id/resource/datasan-disposal-compliance', 'Unduh checklist-nya →')],
 ];
-$marker = '/<div class="dti-leadmagnet-cta"[^>]*>.*?<\/div>/s';
+// Any attribute order (the box may have been touched in the editor); the box holds no nested <div>.
+$marker = '/<div\b[^>]*\bdti-leadmagnet-cta\b[^>]*>.*?<\/div>/s';
 // Rollback removes exactly what the insert added (box + "\n\n"), so the content returns byte-identical.
-$markerRb = '/<div class="dti-leadmagnet-cta"[^>]*>.*?<\/div>(?:\n\n)?/s';
+$markerRb = '/<div\b[^>]*\bdti-leadmagnet-cta\b[^>]*>.*?<\/div>(?:\n\n)?/s';
 foreach ($posts as $id => $cfg) {
   $p = get_post($id);
   if (!$p || $p->post_name !== $cfg['slug']) { WP_CLI::warning("$id missing or slug mismatch — skipped"); continue; }
