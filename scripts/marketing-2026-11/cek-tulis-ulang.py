@@ -15,7 +15,7 @@ for d in sys.argv[1:]:
     hrefs = re.findall(r'href="([^"]+)"', b)
     own = [h for h in hrefs if h.startswith('/') or 'dtisolution.id' in h]
     dead = [h for h in own if status(h) != '200']
-    ok += [('snippet 40–55 kata (%d)' % sw, 40 <= sw <= 58), ('panjang 800–1.600 (%d)' % w, 800 <= w <= 1600),
+    ok += [('snippet 40–55 kata (%d)' % sw, 40 <= sw <= 55), ('panjang 800–1.600 (%d)' % w, 800 <= w <= 1600),
            ('≥3 H2', len(re.findall(r'<h2\b', b)) >= 3), ('tanpa H1 di isi', '<h1' not in b),
            ('tabel atau gambar', bool(re.search(r'<table|<img', b))), ('tautan produk', any('/id/produk/' in h for h in hrefs)),
            ('CTA kontak', any('/id/kontak' in h for h in hrefs)), ('tanpa wa.me / request-demo', not any(('wa.me' in h or 'request-demo' in h) for h in hrefs)),
