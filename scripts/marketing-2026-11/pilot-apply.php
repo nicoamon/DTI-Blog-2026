@@ -15,8 +15,10 @@ if (!$dry && !current_user_can('unfiltered_html')) WP_CLI::error('Run with --use
 $p = get_post($id); if (!$p || $p->post_type !== 'post') WP_CLI::error("$id bukan post");
 $asli = file_get_contents("$dir/asli.html"); $baru = file_get_contents("$dir/baru.html");
 $ver = trim(@file_get_contents('/tmp/humanizer-amon.VERSION') ?: '1.0.0');
-if (rtrim($p->post_content) === rtrim($baru)) { WP_CLI::log("$id: sudah versi baru"); return; }
-if (rtrim($p->post_content) !== rtrim($asli) && !$force) WP_CLI::error("$id: isi saat ini berbeda dari asli.html (ada suntingan setelah review) — tidak ditulis.");
+// Content already new: stop only when there is no meta to (re)apply, so a run that failed half-way can be repeated.
+$same = rtrim($p->post_content) === rtrim($baru);
+if ($same && !is_readable("$dir/baru-meta.json")) { WP_CLI::log("$id: sudah versi baru"); return; }
+if (!$same && rtrim($p->post_content) !== rtrim($asli) && !$force) WP_CLI::error("$id: isi saat ini berbeda dari asli.html (ada suntingan setelah review) — tidak ditulis.");
 WP_CLI::log(($dry ? '[dry] ' : '') . "$id {$p->post_name}: " . strlen($p->post_content) . ' → ' . strlen($baru) . ' byte');
 if ($dry) return;
 if (!metadata_exists('post', $id, '_dti_prev_content_pilot')) update_post_meta($id, '_dti_prev_content_pilot', wp_slash($p->post_content));
@@ -33,5 +35,5 @@ if ($meta && !is_wp_error($r) && $r) foreach (['rank_math_title', 'rank_math_des
 if (is_wp_error($r) || !$r) WP_CLI::error("$id: simpan gagal");
 update_post_meta($id, 'humanizer', "humanizer-amon@$ver");
 update_post_meta($id, '_dti_pilot', current_time('mysql'));
-$ok = rtrim(get_post($id)->post_content) === rtrim($baru);
-WP_CLI::success("$id diganti (humanizer-amon@$ver)" . ($ok ? '' : ' — PERINGATAN: isi tersimpan berbeda dari baru.html'));
+if (rtrim(get_post($id)->post_content) !== rtrim($baru)) WP_CLI::error("$id: isi tersimpan BERBEDA dari baru.html — periksa post; isi lama ada di meta _dti_prev_content_pilot.");
+WP_CLI::success("$id diganti (humanizer-amon@$ver)");
