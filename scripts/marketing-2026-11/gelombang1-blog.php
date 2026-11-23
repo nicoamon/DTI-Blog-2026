@@ -7,6 +7,7 @@ defined('WP_CLI') && WP_CLI || exit; // WP-CLI only
  *  C) judul dobel (11 pasang) → yang views-nya lebih kecil jadi draft + 301 ke kembarannya
  *  Idempoten. Backup isi lama di meta _dti_prev_content_w1; penanda _dti_w1 di setiap post yang disentuh.
  *  Rollback: post_content ← _dti_prev_content_w1; post_status ← publish; hapus redirect di _dti_w1_redirect_id. */
+$unknown = array_diff($args ?? [], ['dry']); if ($unknown) WP_CLI::error('Argumen tidak dikenal: ' . implode(', ', $unknown) . ' — tidak ada yang ditulis.');
 $dry = in_array('dry', $args ?? [], true);
 $log = fn($m) => WP_CLI::log(($dry ? '[dry] ' : '') . $m);
 if (!$dry && !current_user_can('unfiltered_html')) WP_CLI::error('Run with --user=nico (needs unfiltered_html) — nothing changed.');
