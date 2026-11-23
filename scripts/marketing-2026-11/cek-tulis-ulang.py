@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Gate for pilot REWRITES (TULIS ULANG) of live posts: <dir> has baru.html + baru-meta.json.
 Usage: cek-tulis-ulang.py <dir> ...   exit 1 on any failure. Checks links live over HTTPS (own site)."""
-import re, sys, json, html, subprocess
+import re, sys, json, html, subprocess, urllib.parse
 MODE2 = r'PTPN|Agrinas|TMS[ -]?BTN|CRM for Bank|\bAstra\b|Bank Saqu|FIF Group|negative EBITDA'
 def status(u):
     u = u if u.startswith('http') else 'https://dtisolution.id' + u
@@ -12,11 +12,12 @@ for d in sys.argv[1:]:
     t = html.unescape(re.sub(r'<[^>]+>', ' ', b)); w = len(t.split())
     snip = re.search(r'class="dti-snippet-answer".*?</strong>(.*?)</div>', b, re.S)
     sw = len(html.unescape(re.sub('<[^>]+>', ' ', snip.group(1))).split()) if snip else 0
-    hrefs = re.findall(r'href="([^"]+)"', b)
-    own = [h for h in hrefs if h.startswith('/') or 'dtisolution.id' in h]
+    hrefs = [x or y for x, y in re.findall(r'''href\s*=\s*(?:"([^"]*)"|'([^']*)')''', b, re.I)]  # both quote styles
+    host = lambda h: (urllib.parse.urlparse(h).hostname or '').lower()
+    own = [h for h in hrefs if h.startswith('/') or host(h) in ('dtisolution.id', 'www.dtisolution.id')]
     dead = [h for h in own if status(h) != '200']
     ok += [('snippet 40–55 kata (%d)' % sw, 40 <= sw <= 58), ('panjang 800–1.600 (%d)' % w, 800 <= w <= 1600),
-           ('≥3 H2', len(re.findall(r'<h2\b', b)) >= 3), ('tanpa H1 di isi', '<h1' not in b),
+           ('≥3 H2', len(re.findall(r'<h2\b', b)) >= 3), ('tanpa H1 di isi', not re.search(r'<h1\b', b, re.I)),
            ('tabel atau gambar', bool(re.search(r'<table|<img', b))), ('tautan produk', any('/id/produk/' in h for h in hrefs)),
            ('CTA kontak', any('/id/kontak' in h for h in hrefs)), ('tanpa wa.me / request-demo', not any(('wa.me' in h or 'request-demo' in h) for h in hrefs)),
            ('semua tautan internal 200' + (' ' + str(dead) if dead else ''), not dead),
