@@ -577,7 +577,8 @@ add_filter( 'rank_math/frontend/canonical', function ( $canonical ) {
 } );
 add_filter( 'rank_math/frontend/title', function ( $title ) {
 	$n = dti_blog_paged_n();
-	return $n > 1 ? $title . ' - Halaman ' . $n : $title;
+	// Templat Rank Math bisa memuat %page% sendiri ("Halaman N" / "Page N"); jangan tambahkan sufiks dobel.
+	return ( $n > 1 && ! preg_match( '/\\b(?:halaman|page)\\s+' . $n . '\\b/i', $title ) ) ? $title . ' - Halaman ' . $n : $title;
 } );
 // 3. Thumbnail tanpa alt: pakai judul post yang ditampilkan (grid indeks, arsip, related).
 add_filter( 'wp_get_attachment_image_attributes', function ( $attr, $attachment = null ) {
