@@ -100,7 +100,9 @@ foreach ($targets as $id => $to) {
   $log("$id {$src} → draft + 301 ke $dest");
   if ($dry || !$rm) continue;
   $row = $exists($src); $created = false;
-  if ($row) {
+  if ($row && (int) $row['id'] === (int) get_post_meta($id, '_dti_w1_redirect_id', true)) {
+    $rid = (int) $row['id']; $created = true; // buatan run sebelumnya yang berhenti sebelum unpublish
+  } elseif ($row) {
     $rid = (int) $row['id'];
     if (!$sameDest($row['url_to'] ?? '', $dest)) { WP_CLI::warning("$id: redirect lama #$rid untuk $src menunjuk ke " . ($row['url_to'] ?? '?') . ", bukan $dest — dilewati, post tetap tayang; periksa manual"); continue; }
     update_post_meta($id, '_dti_w1_redirect_reused', $rid);
