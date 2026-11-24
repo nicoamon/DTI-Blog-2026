@@ -579,10 +579,13 @@ add_filter( 'rank_math/frontend/title', function ( $title ) {
 	return $n > 1 ? $title . ' - Halaman ' . $n : $title;
 } );
 // 3. Thumbnail tanpa alt: pakai judul post yang ditampilkan (grid indeks, arsip, related).
-add_filter( 'wp_get_attachment_image_attributes', function ( $attr ) {
-	// Grid modules run their own WP_Query (in_the_loop() is false there), so use the current global post.
-	if ( empty( $attr['alt'] ) && ( $p = get_post() ) && 'attachment' !== $p->post_type ) {
+add_filter( 'wp_get_attachment_image_attributes', function ( $attr, $attachment = null ) {
+	// Grid modules run their own WP_Query (in_the_loop() is false there), so use the current global post,
+	// but only on the front end and only when the image IS that post's featured image: other images
+	// (decorative, or a module that did not set up the global post) keep their own alt.
+	if ( ! is_admin() && empty( $attr['alt'] ) && $attachment instanceof WP_Post && ( $p = get_post() )
+		&& 'attachment' !== $p->post_type && (int) get_post_thumbnail_id( $p ) === (int) $attachment->ID ) {
 		$attr['alt'] = wp_strip_all_tags( get_the_title( $p ) );
 	}
 	return $attr;
-}, 25 );
+}, 25, 2 );
