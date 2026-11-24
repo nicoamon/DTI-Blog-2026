@@ -32,7 +32,9 @@ foreach ($targets as $id => $to) {
   WP_CLI::log(($dry ? '[dry] ' : '') . "$id $src → draft + 301 ke $dest");
   if ($dry) continue;
   $row = $exists($src); $created = false;
-  if ($row) {
+  if ($row && (int) $row['id'] === (int) get_post_meta($id, '_dti_fo_redirect_id', true)) {
+    $rid = (int) $row['id']; $created = true; // buatan run sebelumnya yang berhenti sebelum unpublish
+  } elseif ($row) {
     $rid = (int) $row['id'];
     if (!$sameDest($row['url_to'] ?? '', $dest)) { WP_CLI::warning("$id: redirect lama #$rid untuk $src menunjuk ke " . ($row['url_to'] ?? '?') . ", bukan $dest — dilewati, post tetap tayang; periksa manual"); continue; }
     update_post_meta($id, '_dti_fo_redirect_reused', $rid);
