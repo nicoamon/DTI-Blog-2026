@@ -572,7 +572,8 @@ add_action( 'wp_body_open', 'dti_blog_index_h1' );
 function dti_blog_paged_n() { return is_front_page() ? max( (int) get_query_var( 'paged' ), (int) get_query_var( 'page' ) ) : 0; }
 add_filter( 'rank_math/frontend/canonical', function ( $canonical ) {
 	$n = dti_blog_paged_n();
-	return $n > 1 ? get_pagenum_link( $n ) : $canonical;
+	// Tanpa query string: ?utm_* atau parameter lain tidak boleh ikut menjadi URL kanonik.
+	return $n > 1 ? strtok( get_pagenum_link( $n, false ), '?' ) : $canonical;
 } );
 add_filter( 'rank_math/frontend/title', function ( $title ) {
 	$n = dti_blog_paged_n();
