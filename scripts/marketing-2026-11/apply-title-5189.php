@@ -30,7 +30,7 @@ if ($rollback) {
     if ($prev === '') delete_post_meta($id, $k); else update_post_meta($id, $k, wp_slash($prev));
     delete_post_meta($id, "_dti_prev_$k"); // backup consumed — a later run takes a fresh one
   }
-  if ($skipped) { WP_CLI::warning("$id: rollback PARSIAL — tidak dipulihkan: " . implode(', ', $skipped)); return; }
+  if ($skipped) { WP_CLI::warning(($dry ? '[dry] ' : '') . "$id: rollback PARSIAL — tidak dipulihkan: " . implode(', ', $skipped)); return; }
   WP_CLI::success(($dry ? '[dry] ' : '') . "$id rolled back"); return;
 }
 if ($ot === $t && $od === $d) { WP_CLI::log("$id title/meta already set"); return; }
