@@ -63,6 +63,7 @@ foreach ($fix as $id => $reps) {
     if ($have === 0 && ($rx || $new === '' || substr_count($c, $new) > 0)) { $log("$id: sudah beres — " . mb_substr(strip_tags($old), 0, 50)); continue; }
     if ($have !== $n) { WP_CLI::warning("$id: diharapkan $n kemunculan, ada $have — " . mb_substr(strip_tags($old), 0, 60) . " (post TIDAK diubah)"); $ok = false; break; }
     $c = $rx ? preg_replace($old, $new, $c) : str_replace($old, $new, $c);
+    if ($c === null) { WP_CLI::warning("$id: regex gagal (" . preg_last_error_msg() . ") — post TIDAK diubah"); $ok = false; break; }
   }
   if (!$ok || $c === $orig) { if ($ok) $log("$id: tidak ada perubahan"); continue; }
   $log("$id: " . count($reps) . ' perbaikan, ' . (strlen($orig) - strlen($c)) . ' byte lebih pendek');
