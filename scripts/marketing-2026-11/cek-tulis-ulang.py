@@ -14,6 +14,8 @@ def status(u):
     # Follow redirects, but a link whose redirect lands on ANOTHER page (a post taken down → 301 to the
     # blog home or its twin) fails: the code becomes '200→<final url>'.
     u = u if u.startswith('http') else BASE + u
+    if 'BASE' in os.environ:  # checking staging: absolute links to the live site go to BASE too, never mixed with prod
+        u = re.sub(r'^https?://(?:www\.)?dtisolution\.id(?=/|$)', BASE.rstrip('/'), u, flags=re.I)
     code, _, final = subprocess.run(['curl', '-sL', '-o', '/dev/null', '--max-time', '15', '-w', '%{http_code} %{url_effective}', u], capture_output=True, text=True).stdout.partition(' ')
     return code if code != '200' or same_url(u, final) else code + '→' + final
 sys.stdout.reconfigure(encoding='utf-8')  # output has '±', '–': never depend on the locale
