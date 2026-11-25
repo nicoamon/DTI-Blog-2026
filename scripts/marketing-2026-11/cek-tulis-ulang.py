@@ -8,9 +8,11 @@ def status(u):
     # No -L: a link to a post that was taken down (301 to the blog home or its twin) must fail, not pass.
     u = u if u.startswith('http') else BASE + u
     return subprocess.run(['curl', '-s', '-o', '/dev/null', '--max-time', '15', '-w', '%{http_code}', u], capture_output=True, text=True).stdout
+sys.stdout.reconfigure(encoding='utf-8')  # output has '±', '–': never depend on the locale
+if len(sys.argv) < 2: sys.exit('Usage: cek-tulis-ulang.py <dir> ...  (tanpa direktori = tidak ada yang diperiksa, bukan lulus)')
 bad = 0
 for d in sys.argv[1:]:
-    b = open(d + '/baru.html').read(); m = json.load(open(d + '/baru-meta.json')); ok = []
+    b = open(d + '/baru.html', encoding='utf-8').read(); m = json.load(open(d + '/baru-meta.json', encoding='utf-8')); ok = []
     t = html.unescape(re.sub(r'<[^>]+>', ' ', b)); w = len(t.split())
     snip = re.search(r'class="dti-snippet-answer".*?</strong>(.*?)</div>', b, re.S)
     sw = len(html.unescape(re.sub('<[^>]+>', ' ', snip.group(1))).split()) if snip else 0
