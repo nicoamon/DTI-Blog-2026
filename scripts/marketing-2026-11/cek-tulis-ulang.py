@@ -4,10 +4,18 @@ Usage: cek-tulis-ulang.py <dir> ...   exit 1 on any failure. Checks links live o
 import os, re, sys, json, html, subprocess, urllib.parse
 MODE2 = r'PTPN|Agrinas|TMS[ -]?BTN|CRM for Bank|\bAstra\b|Bank Saqu|FIF Group|negative EBITDA'
 BASE = os.environ.get('BASE', 'https://dtisolution.id')  # e.g. BASE=https://dti.amon.id to check against staging
+def same_url(a, b):
+    # Redirects that keep the page (http→https, www→apex, added trailing slash) are fine.
+    def n(u):
+        p = urllib.parse.urlsplit(u); h = (p.hostname or '').lower()
+        return (h[4:] if h.startswith('www.') else h, p.path.rstrip('/') or '/', p.query)
+    return n(a) == n(b)
 def status(u):
-    # No -L: a link to a post that was taken down (301 to the blog home or its twin) must fail, not pass.
+    # Follow redirects, but a link whose redirect lands on ANOTHER page (a post taken down → 301 to the
+    # blog home or its twin) fails: the code becomes '200→<final url>'.
     u = u if u.startswith('http') else BASE + u
-    return subprocess.run(['curl', '-s', '-o', '/dev/null', '--max-time', '15', '-w', '%{http_code}', u], capture_output=True, text=True).stdout
+    code, _, final = subprocess.run(['curl', '-sL', '-o', '/dev/null', '--max-time', '15', '-w', '%{http_code} %{url_effective}', u], capture_output=True, text=True).stdout.partition(' ')
+    return code if code != '200' or same_url(u, final) else code + '→' + final
 sys.stdout.reconfigure(encoding='utf-8')  # output has '±', '–': never depend on the locale
 if len(sys.argv) < 2: sys.exit('Usage: cek-tulis-ulang.py <dir> ...  (tanpa direktori = tidak ada yang diperiksa, bukan lulus)')
 bad = 0
