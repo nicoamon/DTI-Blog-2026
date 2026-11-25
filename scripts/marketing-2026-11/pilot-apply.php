@@ -7,7 +7,9 @@ defined('WP_CLI') && WP_CLI || exit; // WP-CLI only
  *    <dir> berisi asli.html (isi yang direview) dan baru.html (versi baru).
  *    Tanpa `force`: menolak bila isi saat ini ≠ asli.html (ada suntingan setelah review).
  *    `force` hanya untuk staging (salinan pratinjau).
- *  Rollback: post_content ← meta _dti_prev_content_pilot (+ post_title/Rank Math ← _dti_prev_* bila tulis ulang); hapus meta humanizer & _dti_pilot. */
+ *  Rollback: pilot-rollback.php <ID> [dry] --user=nico. Cadangan: _dti_prev_content_pilot (isi) dan, bila tulis ulang,
+ *  _dti_pilot_prev_meta (JSON post_title + Rank Math; null = meta itu belum ada). Kunci khusus pilot, terpisah dari
+ *  _dti_prev_rank_math_* milik skrip uji judul (apply-title-*.php). */
 [$id, $dir] = [(int) ($args[0] ?? 0), rtrim($args[1] ?? '', '/')];
 $dry = in_array('dry', $args, true); $force = in_array('force', $args, true);
 $unknown = array_filter(array_slice($args, 2), fn($a) => !in_array($a, ['dry', 'force'], true) && !preg_match('/^humanizer=/', $a));
@@ -40,8 +42,12 @@ if (!$same && !metadata_exists('post', $id, '_dti_prev_content_pilot')) update_p
 // Rewrites (TULIS ULANG) also carry baru-meta.json: new H1/post_title + Rank Math title/description/focus keyword.
 $upd = ['ID' => $id, 'post_content' => $baru];
 if ($meta) {
-  foreach (['post_title', 'rank_math_title', 'rank_math_description', 'rank_math_focus_keyword'] as $k)
-    if (!metadata_exists('post', $id, "_dti_prev_$k")) update_post_meta($id, "_dti_prev_$k", wp_slash($k === 'post_title' ? $p->post_title : get_post_meta($id, $k, true)));
+  // One backup per post, taken once (never from an already-applied post): null marks "meta did not exist".
+  if (!metadata_exists('post', $id, '_dti_pilot_prev_meta') && !metadata_exists('post', $id, '_dti_prev_post_title')) {
+    $prev = ['post_title' => $p->post_title];
+    foreach (['rank_math_title', 'rank_math_description', 'rank_math_focus_keyword'] as $k) $prev[$k] = metadata_exists('post', $id, $k) ? get_post_meta($id, $k, true) : null;
+    update_post_meta($id, '_dti_pilot_prev_meta', wp_slash(wp_json_encode($prev, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)));
+  }
   $upd['post_title'] = $meta['post_title'];
 }
 $r = wp_update_post(wp_slash($upd), true);
