@@ -7,6 +7,8 @@ BASE = os.environ.get('BASE', 'https://dtisolution.id')  # e.g. BASE=https://dti
 def status(u):
     # No -L: a link to a post that was taken down (301 to the blog home or its twin) must fail, not pass.
     u = u if u.startswith('http') else BASE + u
+    if 'BASE' in os.environ:  # checking staging: absolute links to the live site go to BASE too, never mixed with prod
+        u = re.sub(r'^https?://(?:www\.)?dtisolution\.id(?=/|$)', BASE.rstrip('/'), u, flags=re.I)
     return subprocess.run(['curl', '-s', '-o', '/dev/null', '--max-time', '15', '-w', '%{http_code}', u], capture_output=True, text=True).stdout
 bad = 0
 for d in sys.argv[1:]:
