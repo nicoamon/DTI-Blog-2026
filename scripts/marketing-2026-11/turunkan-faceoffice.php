@@ -32,8 +32,15 @@ foreach ($targets as $id => $to) {
   WP_CLI::log(($dry ? '[dry] ' : '') . "$id $src → draft + 301 ke $dest");
   if ($dry) continue;
   $row = $exists($src); $created = false;
-  if ($row && (int) $row['id'] === (int) get_post_meta($id, '_dti_fo_redirect_id', true)) {
-    $rid = (int) $row['id']; $created = true; // buatan run sebelumnya yang berhenti sebelum unpublish
+  $own = $row && (int) $row['id'] === (int) get_post_meta($id, '_dti_fo_redirect_id', true); // buatan run sebelumnya yang berhenti sebelum unpublish
+  if ($own && !$sameDest($row['url_to'] ?? '', $dest)) {
+    // Tujuan sudah berubah sejak run itu (target/permalink baru): ganti redirect basi milik sendiri, jangan dipakai ulang.
+    if (!\RankMath\Redirections\DB::delete([(int) $row['id']])) { WP_CLI::warning("$id: redirect basi #{$row['id']} (ke {$row['url_to']}) gagal dihapus — dilewati, periksa manual"); continue; }
+    delete_post_meta($id, '_dti_fo_redirect_id'); WP_CLI::log("$id: redirect basi #{$row['id']} ke {$row['url_to']} dihapus, dibuat ulang ke $dest");
+    $row = null; $own = false;
+  }
+  if ($own) {
+    $rid = (int) $row['id']; $created = true;
   } elseif ($row) {
     $rid = (int) $row['id'];
     if (!$sameDest($row['url_to'] ?? '', $dest)) { WP_CLI::warning("$id: redirect lama #$rid untuk $src menunjuk ke " . ($row['url_to'] ?? '?') . ", bukan $dest — dilewati, post tetap tayang; periksa manual"); continue; }
