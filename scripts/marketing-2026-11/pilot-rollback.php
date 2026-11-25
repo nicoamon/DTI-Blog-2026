@@ -5,7 +5,9 @@ defined('WP_CLI') && WP_CLI || exit; // WP-CLI only
  *  Memulihkan post_content ← _dti_prev_content_pilot (isi SEBELUM pilot; diagram yang ditambahkan sesudahnya ikut hilang)
  *  dan, untuk tulis ulang, post_title + Rank Math ← _dti_pilot_prev_meta (JSON; null = hapus meta).
  *  Post batch 2 yang diterapkan sebelum 25 Nov memakai kunci lama _dti_prev_<k> ('' = hapus meta Rank Math).
- *  Menolak bila post tidak berstempel _dti_pilot, atau bila judul sudah disunting setelah pilot (tambahkan `force`).
+ *  Menolak bila post tidak berstempel _dti_pilot; bila judul sudah disunting setelah pilot (kunci baru: dibandingkan
+ *  dengan applied_title); dan, pada kunci lama, untuk post uji judul 5023/5189/5233 yang memakai kunci yang sama.
+ *  `force` melewati dua penolakan terakhir. Suntingan isi setelah pilot tidak dideteksi: cek dulu dengan `dry`.
  *  Cadangan yang dipakai dihapus, jadi pilot-apply berikutnya mengambil cadangan baru. */
 $id = (int) ($args[0] ?? 0); $dry = in_array('dry', $args, true); $force = in_array('force', $args, true);
 $unknown = array_diff(array_slice($args, 1), ['dry', 'force']);
@@ -27,6 +29,11 @@ if (metadata_exists('post', $id, '_dti_pilot_prev_meta')) {
 if ($prev && is_string($prev['post_title'] ?? null) && trim($prev['post_title']) === '') WP_CLI::error("$id: cadangan judul kosong — tidak ada yang ditulis.");
 // Defined once $prev is final: arrow functions capture variables by value.
 $has = fn($k) => is_array($prev) && array_key_exists($k, $prev) && $prev[$k] !== false; // null = delete the meta, false = no backup
+if (!$force && is_array($prev) && isset($prev['applied_title']) && $p->post_title !== $prev['applied_title'])
+  WP_CLI::error("$id: judul sudah disunting setelah pilot ('{$p->post_title}', pilot menulis '{$prev['applied_title']}') — rollback akan menimpanya. Tambahkan `force` bila tetap ingin.");
+if (!$force && $legacy && in_array($id, [5023, 5189, 5233], true))
+  WP_CLI::error("$id: post uji judul — kunci _dti_prev_rank_math_* juga milik apply-title-*.php; periksa manual atau tambahkan `force`.");
+if ($legacy) WP_CLI::warning("$id: memakai kunci cadangan lama (_dti_prev_<k>) — '' dibaca sebagai default Rank Math.");
 $tag = $dry ? '[dry] ' : '';
 WP_CLI::log($tag . "$id: isi " . strlen($p->post_content) . ' → ' . strlen(get_post_meta($id, '_dti_prev_content_pilot', true)) . ' byte' . ($prev ? ' + judul/Rank Math' . ($legacy ? ' (kunci lama)' : '') : ''));
 if ($prev) foreach ($keys as $k) if ($has($k)) WP_CLI::log($tag . "  $k ← " . ($prev[$k] === null ? '(hapus, kembali ke bawaan)' : $prev[$k]));

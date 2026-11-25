@@ -36,7 +36,7 @@ foreach ($targets as $id => $to) {
   $own = $row && (int) $row['id'] === (int) get_post_meta($id, '_dti_fo_redirect_id', true); // buatan run sebelumnya yang berhenti sebelum unpublish
   if ($own && !$sameDest($row['url_to'] ?? '', $dest)) {
     // Tujuan sudah berubah sejak run itu (target/permalink baru): ganti redirect basi milik sendiri, jangan dipakai ulang.
-    if (!\RankMath\Redirections\DB::delete([(int) $row['id']])) { WP_CLI::warning("$id: redirect basi #{$row['id']} (ke {$row['url_to']}) gagal dihapus — dilewati, periksa manual"); continue; }
+    if (!\RankMath\Redirections\DB::delete([(int) $row['id']])) { WP_CLI::warning("$id: redirect basi #{$row['id']} (ke {$row['url_to']}) gagal dihapus — dilewati, post TAYANG dengan 301 basi; periksa manual"); $alarm[] = $id; continue; }
     delete_post_meta($id, '_dti_fo_redirect_id'); WP_CLI::log("$id: redirect basi #{$row['id']} ke {$row['url_to']} dihapus, dibuat ulang ke $dest");
     $row = null; $own = false;
   }

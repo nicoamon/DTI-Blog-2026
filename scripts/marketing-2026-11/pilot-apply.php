@@ -46,7 +46,7 @@ $upd = ['ID' => $id, 'post_content' => $baru];
 if ($meta) {
   // One backup per post, taken once (never from an already-applied post): null marks "meta did not exist".
   if (!metadata_exists('post', $id, '_dti_pilot_prev_meta') && !metadata_exists('post', $id, '_dti_prev_post_title')) {
-    $prev = ['post_title' => $p->post_title];
+    $prev = ['post_title' => $p->post_title, 'applied_title' => $meta['post_title']]; // applied_title: rollback refuses if edited since
     foreach (['rank_math_title', 'rank_math_description', 'rank_math_focus_keyword'] as $k) $prev[$k] = metadata_exists('post', $id, $k) ? get_post_meta($id, $k, true) : null;
     update_post_meta($id, '_dti_pilot_prev_meta', wp_slash(wp_json_encode($prev, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)));
   }
@@ -58,7 +58,11 @@ if (is_wp_error($r) || !$r) WP_CLI::error("$id: simpan gagal");
 // Verify BEFORE stamping: the humanizer stamp is a publication requirement, so a post whose stored
 // content differs from the reviewed baru.html must not carry it.
 clean_post_cache($id);
-if ($norm(get_post($id)->post_content) !== $norm($baru)) WP_CLI::error("$id: isi tersimpan BERBEDA dari baru.html — stempel humanizer TIDAK ditulis; periksa post; isi lama ada di meta _dti_prev_content_pilot.");
+if ($norm(get_post($id)->post_content) !== $norm($baru)) {
+  // No humanizer stamp, but mark the post so pilot-rollback.php can still restore it (content/title are already written).
+  update_post_meta($id, '_dti_pilot', 'GAGAL-VERIFIKASI ' . current_time('mysql'));
+  WP_CLI::error("$id: isi tersimpan BERBEDA dari baru.html — stempel humanizer TIDAK ditulis. Pulihkan dengan: wp eval-file pilot-rollback.php $id --user=nico");
+}
 update_post_meta($id, 'humanizer', "humanizer-amon@$ver");
 update_post_meta($id, '_dti_pilot', current_time('mysql'));
 WP_CLI::success("$id diganti (humanizer-amon@$ver)");

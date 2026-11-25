@@ -8,7 +8,8 @@ def same_url(a, b):
     # Redirects that keep the page (http→https, www→apex, added trailing slash) are fine.
     def n(u):
         p = urllib.parse.urlsplit(u); h = (p.hostname or '').lower()
-        return (h[4:] if h.startswith('www.') else h, p.path.rstrip('/') or '/', p.query)
+        path = urllib.parse.unquote(p.path).lower().rstrip('/') or '/'  # WP slugs are lowercase; /id/Produk → /id/produk/ is the same page
+        return (h[4:] if h.startswith('www.') else h, path, p.query)
     return n(a) == n(b)
 def status(u):
     # Follow redirects, but a link whose redirect lands on ANOTHER page (a post taken down → 301 to the
