@@ -572,8 +572,14 @@ add_action( 'wp_body_open', 'dti_blog_index_h1' );
 function dti_blog_paged_n() { return is_front_page() ? max( (int) get_query_var( 'paged' ), (int) get_query_var( 'page' ) ) : 0; }
 add_filter( 'rank_math/frontend/canonical', function ( $canonical ) {
 	$n = dti_blog_paged_n();
-	// Tanpa query string: ?utm_* atau parameter lain tidak boleh ikut menjadi URL kanonik.
-	return $n > 1 ? strtok( get_pagenum_link( $n, false ), '?' ) : $canonical;
+	// Tanpa query string: ?utm_* atau parameter lain tidak boleh ikut menjadi URL kanonik. Dengan permalink plain
+	// (?page_id=…&paged=N) hanya parameter halaman yang dipertahankan, supaya halaman 2 dst. tidak jatuh ke beranda.
+	if ( $n < 2 ) return $canonical;
+	$url  = get_pagenum_link( $n, false );
+	$base = strtok( $url, '?' );
+	if ( get_option( 'permalink_structure' ) ) return $base;
+	wp_parse_str( (string) wp_parse_url( $url, PHP_URL_QUERY ), $q );
+	return add_query_arg( array_intersect_key( $q, array_flip( array( 'page_id', 'p', 'paged', 'page' ) ) ), $base );
 } );
 add_filter( 'rank_math/frontend/title', function ( $title ) {
 	$n = dti_blog_paged_n();
