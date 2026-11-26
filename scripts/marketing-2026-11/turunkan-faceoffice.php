@@ -13,13 +13,18 @@ if (!class_exists('\\RankMath\\Redirections\\Redirection') || !class_exists('\\R
 $targets = [3752 => null, 2632 => 2610];
 $exists = function ($src) {
   // Every status except trashed ('any'), every page: an inactive redirect or one past the first page must not be missed.
+  // An active match wins over an inactive one (an older active redirect plus a newer inactive copy is fine).
+  $inactive = null;
   for ($pg = 1; $pg <= 50; $pg++) {
     $rows = (array) (\RankMath\Redirections\DB::get_redirections(['search' => $src, 'status' => 'any', 'limit' => 200, 'paged' => $pg])['redirections'] ?? []);
     foreach ($rows as $row)
-      foreach ((array) maybe_unserialize($row['sources'] ?? []) as $one) if (($one['pattern'] ?? '') === $src) return $row;
+      foreach ((array) maybe_unserialize($row['sources'] ?? []) as $one) if (($one['pattern'] ?? '') === $src) {
+        if (($row['status'] ?? 'active') === 'active') return $row;
+        $inactive = $inactive ?? $row;
+      }
     if (count($rows) < 200) break;
   }
-  return null;
+  return $inactive;
 };
 // Redirect lama dipakai ulang hanya bila tujuannya sama (URL relatif dibaca terhadap host situs; skema & garis miring akhir diabaikan).
 $sameDest = function ($a, $b) {

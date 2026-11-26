@@ -30,7 +30,7 @@ $posts = [
 ];
 // Any attribute order (the box may have been touched in the editor). The class must be the whole token:
 // `\b` would also match dti-leadmagnet-cta-wrap, because '-' counts as a word boundary.
-$cls = 'class\s*=\s*["\'][^"\']*(?<![\w-])dti-leadmagnet-cta(?![\w-])[^"\']*["\']';
+$cls = '(?<![\w-])class\s*=\s*["\'][^"\']*(?<![\w-])dti-leadmagnet-cta(?![\w-])[^"\']*["\']';
 $marker = '/<div\b[^>]*' . $cls . '[^>]*>(.*?)<\/div>/s';
 // Rollback removes exactly what the insert added (box + "\n\n"), so the content returns byte-identical.
 $markerRb = '/<div\b[^>]*' . $cls . '[^>]*>.*?<\/div>(?:\n\n)?/s';
