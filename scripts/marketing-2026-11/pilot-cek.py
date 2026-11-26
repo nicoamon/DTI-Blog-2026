@@ -10,9 +10,11 @@ def cells(s): return re.findall(r'<t[hd]\b[^>]*>(.*?)</t[hd]>', s, re.S)
 def keep(s):  # the WHOLE protected box (tags and text), not just its tag/class pair
     return [m.group(0) for m in re.finditer(r'<(div|p)[^>]*class="[^"]*(?:dti-snippet-answer|dti-product-cta|dti-leadmagnet-cta|dti-related-links|dfig)[^"]*".*?</\1>', s, re.S)]
 def text(s):  return html.unescape(re.sub(r'<[^>]+>', ' ', re.sub(r'<!--.*?-->|<style.*?</style>', '', s, flags=re.S)))
+sys.stdout.reconfigure(encoding='utf-8')  # output has '±', '–': never depend on the locale
+if len(sys.argv) < 2: sys.exit('Usage: pilot-cek.py <dir-with-asli.html-and-baru.html> ...  (tanpa direktori = tidak ada yang diperiksa, bukan lulus)')
 bad = 0
 for d in sys.argv[1:]:
-    a = open(d + '/asli.html').read(); b = open(d + '/baru.html').read(); ok = []
+    a = open(d + '/asli.html', encoding='utf-8').read(); b = open(d + '/baru.html', encoding='utf-8').read(); ok = []
     chk = lambda name, cond: ok.append((name, cond))
     chk('tag+atribut identik', tags(a) == tags(b))
     chk('blok komentar identik', blocks(a) == blocks(b))

@@ -7,7 +7,9 @@ defined('WP_CLI') && WP_CLI || exit; // WP-CLI only
  *    <dir> berisi asli.html (isi yang direview) dan baru.html (versi baru).
  *    Tanpa `force`: menolak bila isi saat ini ≠ asli.html (ada suntingan setelah review).
  *    `force` hanya untuk staging (salinan pratinjau).
- *  Rollback: post_content ← meta _dti_prev_content_pilot (+ post_title/Rank Math ← _dti_prev_* bila tulis ulang); hapus meta humanizer & _dti_pilot. */
+ *  Rollback: pilot-rollback.php <ID> [dry] --user=nico. Cadangan: _dti_prev_content_pilot (isi) dan, bila tulis ulang,
+ *  _dti_pilot_prev_meta (JSON post_title + Rank Math; null = meta itu belum ada). Kunci khusus pilot, terpisah dari
+ *  _dti_prev_rank_math_* milik skrip uji judul (apply-title-*.php). */
 [$id, $dir] = [(int) ($args[0] ?? 0), rtrim($args[1] ?? '', '/')];
 $dry = in_array('dry', $args, true); $force = in_array('force', $args, true);
 $unknown = array_filter(array_slice($args, 2), fn($a) => !in_array($a, ['dry', 'force'], true) && !preg_match('/^humanizer=/', $a));
@@ -30,7 +32,9 @@ if (is_readable("$dir/baru-meta.json")) {
 $ver = ''; foreach ($args as $a) if (preg_match('/^humanizer=(\d+\.\d+\.\d+)$/', $a, $mm)) $ver = $mm[1];
 if ($ver === '') WP_CLI::error('Wajib: humanizer=<x.y.z> (isi 00-Core/skills/humanizer-amon/VERSION) — tidak ada yang ditulis.');
 // Content already new: stop only when there is no meta to (re)apply, so a run that failed half-way can be repeated.
-$same = rtrim($p->post_content) === rtrim($baru);
+// WordPress may add rel="noopener" to target="_blank" links on save (wp_targeted_link_rel): that is not a mismatch.
+$norm = fn($s) => rtrim(function_exists('wp_targeted_link_rel') ? wp_targeted_link_rel((string) $s) : (string) $s);
+$same = $norm($p->post_content) === $norm($baru);
 if ($same && !is_readable("$dir/baru-meta.json")) { WP_CLI::log("$id: sudah versi baru"); return; }
 if (!$same && rtrim($p->post_content) !== rtrim($asli) && !$force) WP_CLI::error("$id: isi saat ini berbeda dari asli.html (ada suntingan setelah review) — tidak ditulis.");
 WP_CLI::log(($dry ? '[dry] ' : '') . "$id {$p->post_name}: " . strlen($p->post_content) . ' → ' . strlen($baru) . ' byte');
@@ -40,14 +44,25 @@ if (!$same && !metadata_exists('post', $id, '_dti_prev_content_pilot')) update_p
 // Rewrites (TULIS ULANG) also carry baru-meta.json: new H1/post_title + Rank Math title/description/focus keyword.
 $upd = ['ID' => $id, 'post_content' => $baru];
 if ($meta) {
-  foreach (['post_title', 'rank_math_title', 'rank_math_description', 'rank_math_focus_keyword'] as $k)
-    if (!metadata_exists('post', $id, "_dti_prev_$k")) update_post_meta($id, "_dti_prev_$k", wp_slash($k === 'post_title' ? $p->post_title : get_post_meta($id, $k, true)));
+  // One backup per post, taken once (never from an already-applied post): null marks "meta did not exist".
+  if (!metadata_exists('post', $id, '_dti_pilot_prev_meta') && !metadata_exists('post', $id, '_dti_prev_post_title')) {
+    $prev = ['post_title' => $p->post_title, 'applied_title' => $meta['post_title']]; // applied_title: rollback refuses if edited since
+    foreach (['rank_math_title', 'rank_math_description', 'rank_math_focus_keyword'] as $k) $prev[$k] = metadata_exists('post', $id, $k) ? get_post_meta($id, $k, true) : null;
+    update_post_meta($id, '_dti_pilot_prev_meta', wp_slash(wp_json_encode($prev, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)));
+  }
   $upd['post_title'] = $meta['post_title'];
 }
 $r = wp_update_post(wp_slash($upd), true);
 if ($meta && !is_wp_error($r) && $r) foreach (['rank_math_title', 'rank_math_description', 'rank_math_focus_keyword'] as $k) update_post_meta($id, $k, wp_slash($meta[$k]));
 if (is_wp_error($r) || !$r) WP_CLI::error("$id: simpan gagal");
+// Verify BEFORE stamping: the humanizer stamp is a publication requirement, so a post whose stored
+// content differs from the reviewed baru.html must not carry it.
+clean_post_cache($id);
+if ($norm(get_post($id)->post_content) !== $norm($baru)) {
+  // No humanizer stamp, but mark the post so pilot-rollback.php can still restore it (content/title are already written).
+  update_post_meta($id, '_dti_pilot', 'GAGAL-VERIFIKASI ' . current_time('mysql'));
+  WP_CLI::error("$id: isi tersimpan BERBEDA dari baru.html — stempel humanizer TIDAK ditulis. Pulihkan dengan: wp eval-file pilot-rollback.php $id --user=nico");
+}
 update_post_meta($id, 'humanizer', "humanizer-amon@$ver");
 update_post_meta($id, '_dti_pilot', current_time('mysql'));
-if (rtrim(get_post($id)->post_content) !== rtrim($baru)) WP_CLI::error("$id: isi tersimpan BERBEDA dari baru.html — periksa post; isi lama ada di meta _dti_prev_content_pilot.");
 WP_CLI::success("$id diganti (humanizer-amon@$ver)");

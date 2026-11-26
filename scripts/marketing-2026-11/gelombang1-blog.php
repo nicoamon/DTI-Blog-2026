@@ -63,6 +63,7 @@ foreach ($fix as $id => $reps) {
     if ($have === 0 && ($rx || $new === '' || substr_count($c, $new) > 0)) { $log("$id: sudah beres — " . mb_substr(strip_tags($old), 0, 50)); continue; }
     if ($have !== $n) { WP_CLI::warning("$id: diharapkan $n kemunculan, ada $have — " . mb_substr(strip_tags($old), 0, 60) . " (post TIDAK diubah)"); $ok = false; break; }
     $c = $rx ? preg_replace($old, $new, $c) : str_replace($old, $new, $c);
+    if ($c === null) { WP_CLI::warning("$id: regex gagal (" . preg_last_error_msg() . ") — post TIDAK diubah"); $ok = false; break; }
   }
   if (!$ok || $c === $orig) { if ($ok) $log("$id: tidak ada perubahan"); continue; }
   $log("$id: " . count($reps) . ' perbaikan, ' . (strlen($orig) - strlen($c)) . ' byte lebih pendek');
@@ -91,6 +92,7 @@ $sameDest = function ($a, $b) {
   return $n($a) === $n($b);
 };
 $moved = 0;
+$alarm = []; // posts left published while a 301 of ours is still active
 foreach ($targets as $id => $to) {
   $p = get_post($id);
   if (!$p || $p->post_type !== 'post') { WP_CLI::warning("$id: tidak ada — dilewati"); continue; }
@@ -100,8 +102,15 @@ foreach ($targets as $id => $to) {
   $log("$id {$src} → draft + 301 ke $dest");
   if ($dry || !$rm) continue;
   $row = $exists($src); $created = false;
-  if ($row && (int) $row['id'] === (int) get_post_meta($id, '_dti_w1_redirect_id', true)) {
-    $rid = (int) $row['id']; $created = true; // buatan run sebelumnya yang berhenti sebelum unpublish
+  $own = $row && (int) $row['id'] === (int) get_post_meta($id, '_dti_w1_redirect_id', true); // buatan run sebelumnya yang berhenti sebelum unpublish
+  if ($own && !$sameDest($row['url_to'] ?? '', $dest)) {
+    // Tujuan sudah berubah sejak run itu (target/permalink baru): ganti redirect basi milik sendiri, jangan dipakai ulang.
+    if (!\RankMath\Redirections\DB::delete([(int) $row['id']])) { WP_CLI::warning("$id: redirect basi #{$row['id']} (ke {$row['url_to']}) gagal dihapus — dilewati, post TAYANG dengan 301 basi; periksa manual"); $alarm[] = $id; continue; }
+    delete_post_meta($id, '_dti_w1_redirect_id'); WP_CLI::log("$id: redirect basi #{$row['id']} ke {$row['url_to']} dihapus, dibuat ulang ke $dest");
+    $row = null; $own = false;
+  }
+  if ($own) {
+    $rid = (int) $row['id']; $created = true;
   } elseif ($row) {
     $rid = (int) $row['id'];
     if (!$sameDest($row['url_to'] ?? '', $dest)) { WP_CLI::warning("$id: redirect lama #$rid untuk $src menunjuk ke " . ($row['url_to'] ?? '?') . ", bukan $dest — dilewati, post tetap tayang; periksa manual"); continue; }
@@ -114,10 +123,12 @@ foreach ($targets as $id => $to) {
   }
   $r = wp_update_post(['ID' => $id, 'post_status' => 'draft'], true);
   if (is_wp_error($r) || !$r) {
-    if ($created) { \RankMath\Redirections\DB::delete([$rid]); delete_post_meta($id, '_dti_w1_redirect_id'); WP_CLI::warning("$id: unpublish gagal — redirect yang baru dibuat dihapus lagi, post tetap tayang"); }
+    if ($created && !\RankMath\Redirections\DB::delete([$rid])) { $alarm[] = $id; WP_CLI::warning("$id: unpublish gagal DAN redirect #$rid GAGAL dihapus — post TAYANG tetapi ter-301. Hapus redirect #$rid manual; meta _dti_w1_redirect_id dipertahankan"); }
+    elseif ($created) { delete_post_meta($id, '_dti_w1_redirect_id'); WP_CLI::warning("$id: unpublish gagal — redirect yang baru dibuat dihapus lagi, post tetap tayang"); }
     else { delete_post_meta($id, '_dti_w1_redirect_reused'); WP_CLI::warning("$id: unpublish gagal — post tetap tayang; redirect lama #$rid (bukan buatan skrip ini) dibiarkan, periksa manual"); }
     continue;
   }
   update_post_meta($id, '_dti_w1', $to === null ? 'demo' : "dobel→$to"); $moved++;
 }
 $log("selesai: isi diperbaiki $fixed post · draft+301 $moved post");
+if ($alarm) WP_CLI::error('Redirect gagal dihapus pada post tayang: ' . implode(', ', $alarm) . ' — periksa manual.');
