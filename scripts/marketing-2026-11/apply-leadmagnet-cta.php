@@ -28,10 +28,12 @@ $posts = [
              'Daftar periksa yang bisa langsung dipakai tim IT dan kepatuhan sebelum memusnahkan perangkat, termasuk bukti yang perlu disimpan untuk audit.',
              '/id/resource/datasan-disposal-compliance', 'Unduh checklist-nya →')],
 ];
-// Any attribute order (the box may have been touched in the editor); the box holds no nested <div>.
-$marker = '/<div\b[^>]*\bdti-leadmagnet-cta\b[^>]*>.*?<\/div>/s';
+// Any attribute order (the box may have been touched in the editor). The class must be the whole token:
+// `\b` would also match dti-leadmagnet-cta-wrap, because '-' counts as a word boundary.
+$cls = 'class\s*=\s*["\'][^"\']*(?<![\w-])dti-leadmagnet-cta(?![\w-])[^"\']*["\']';
+$marker = '/<div\b[^>]*' . $cls . '[^>]*>(.*?)<\/div>/s';
 // Rollback removes exactly what the insert added (box + "\n\n"), so the content returns byte-identical.
-$markerRb = '/<div\b[^>]*\bdti-leadmagnet-cta\b[^>]*>.*?<\/div>(?:\n\n)?/s';
+$markerRb = '/<div\b[^>]*' . $cls . '[^>]*>.*?<\/div>(?:\n\n)?/s';
 foreach ($posts as $id => $cfg) {
   $p = get_post($id);
   if (!$p || $p->post_name !== $cfg['slug']) { WP_CLI::warning("$id missing or slug mismatch — skipped"); continue; }
@@ -39,7 +41,9 @@ foreach ($posts as $id => $cfg) {
   if (!$rollback && ($p->post_type !== 'post' || $p->post_status !== 'publish')) { WP_CLI::warning("$id is {$p->post_type}/{$p->post_status}, not a published post — skipped"); continue; }
   $c = $p->post_content;
   if ($rollback) {
-    if (!preg_match($marker, $c)) { WP_CLI::log("$id: no lead-magnet box — nothing to roll back"); continue; }
+    if (!preg_match($marker, $c, $bx)) { WP_CLI::log("$id: no lead-magnet box — nothing to roll back"); continue; }
+    // A <div> nested in the box (edited in the editor) would cut the match short and leave an orphan </div>.
+    if (stripos($bx[1], '<div') !== false) { WP_CLI::warning("$id: box contains a nested <div> — not rolled back, remove it by hand"); continue; }
     $new = preg_replace($markerRb, '', $c, 1);
   } else {
     if (preg_match($marker, $c)) { WP_CLI::log("$id: box already present"); continue; }
