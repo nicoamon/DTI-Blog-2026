@@ -12,7 +12,7 @@ defined('WP_CLI') && WP_CLI || exit; // WP-CLI only
 $id = (int) ($args[0] ?? 0); $dry = in_array('dry', $args, true); $force = in_array('force', $args, true);
 $unknown = array_diff(array_slice($args, 1), ['dry', 'force']);
 if (!$id || $unknown) WP_CLI::error('Usage: <ID> [dry] [force] — tidak ada yang ditulis.');
-if (!$dry && !current_user_can('unfiltered_html')) WP_CLI::error('Run with --user=nico — nothing changed.');
+if (!$dry && !current_user_can('unfiltered_html')) WP_CLI::error('Run with --user=<admin> (needs unfiltered_html) — nothing changed.');
 $p = get_post($id); if (!$p || $p->post_type !== 'post') WP_CLI::error("$id bukan post");
 if (!metadata_exists('post', $id, '_dti_pilot')) WP_CLI::error("$id: tidak berstempel _dti_pilot — bukan post pilot, tidak ada yang ditulis.");
 if (!metadata_exists('post', $id, '_dti_prev_content_pilot')) WP_CLI::error("$id: cadangan isi _dti_prev_content_pilot tidak ada — tidak ada yang ditulis.");

@@ -13,7 +13,7 @@ defined('WP_CLI') && WP_CLI || exit; // WP-CLI only
 $unknown = array_diff($args ?? [], ['dry']); if ($unknown) WP_CLI::error('Argumen tidak dikenal: ' . implode(', ', $unknown) . ' — tidak ada yang ditulis.');
 $dry = in_array('dry', $args ?? [], true);
 $log = fn($m) => WP_CLI::log(($dry ? '[dry] ' : '') . $m);
-if (!$dry && !current_user_can('unfiltered_html')) WP_CLI::error('Run with --user=nico (needs unfiltered_html) — nothing changed.');
+if (!$dry && !current_user_can('unfiltered_html')) WP_CLI::error('Run with --user=<admin> (needs unfiltered_html) — nothing changed.');
 $K = '/id/kontak?product=';
 // ---------- A) content fixes: [post => [[old, new, expected_count], ...]] ----------
 $fix = [

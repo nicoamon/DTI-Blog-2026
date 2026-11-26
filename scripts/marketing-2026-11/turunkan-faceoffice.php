@@ -8,7 +8,7 @@ defined('WP_CLI') && WP_CLI || exit; // WP-CLI only
  *  skrip; saat rollback nonaktifkan manual bila perlu. Redirect lama ke tujuan lain → post dilewati dengan peringatan. */
 $unknown = array_diff($args ?? [], ['dry']); if ($unknown) WP_CLI::error('Unknown argument(s): ' . implode(', ', $unknown) . ' — nothing written.');
 $dry = in_array('dry', $args ?? [], true);
-if (!$dry && !current_user_can('unfiltered_html')) WP_CLI::error('Run with --user=nico — nothing written.');
+if (!$dry && !current_user_can('unfiltered_html')) WP_CLI::error('Run with --user=<admin> (needs unfiltered_html) — nothing written.');
 if (!class_exists('\\RankMath\\Redirections\\Redirection') || !class_exists('\\RankMath\\Redirections\\DB')) WP_CLI::error('Rank Math Redirections tidak tersedia — nothing written.');
 $targets = [3752 => null, 2632 => 2610];
 $exists = function ($src) {
