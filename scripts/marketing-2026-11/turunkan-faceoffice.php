@@ -8,13 +8,23 @@ defined('WP_CLI') && WP_CLI || exit; // WP-CLI only
  *  skrip; saat rollback nonaktifkan manual bila perlu. Redirect lama ke tujuan lain → post dilewati dengan peringatan. */
 $unknown = array_diff($args ?? [], ['dry']); if ($unknown) WP_CLI::error('Unknown argument(s): ' . implode(', ', $unknown) . ' — nothing written.');
 $dry = in_array('dry', $args ?? [], true);
-if (!$dry && !current_user_can('unfiltered_html')) WP_CLI::error('Run with --user=nico — nothing written.');
+if (!$dry && !current_user_can('unfiltered_html')) WP_CLI::error('Run with --user=<admin> (needs unfiltered_html) — nothing written.');
 if (!class_exists('\\RankMath\\Redirections\\Redirection') || !class_exists('\\RankMath\\Redirections\\DB')) WP_CLI::error('Rank Math Redirections tidak tersedia — nothing written.');
 $targets = [3752 => null, 2632 => 2610];
 $exists = function ($src) {
-  foreach ((array) (\RankMath\Redirections\DB::get_redirections(['search' => $src, 'status' => 'active', 'limit' => 200])['redirections'] ?? []) as $row)
-    foreach ((array) maybe_unserialize($row['sources'] ?? []) as $one) if (($one['pattern'] ?? '') === $src) return $row;
-  return null;
+  // Every status except trashed ('any'), every page: an inactive redirect or one past the first page must not be missed.
+  // An active match wins over an inactive one (an older active redirect plus a newer inactive copy is fine).
+  $inactive = null;
+  for ($pg = 1; $pg <= 50; $pg++) {
+    $rows = (array) (\RankMath\Redirections\DB::get_redirections(['search' => $src, 'status' => 'any', 'limit' => 200, 'paged' => $pg])['redirections'] ?? []);
+    foreach ($rows as $row)
+      foreach ((array) maybe_unserialize($row['sources'] ?? []) as $one) if (($one['pattern'] ?? '') === $src) {
+        if (($row['status'] ?? 'active') === 'active') return $row;
+        $inactive = $inactive ?? $row;
+      }
+    if (count($rows) < 200) break;
+  }
+  return $inactive;
 };
 // Redirect lama dipakai ulang hanya bila tujuannya sama (URL relatif dibaca terhadap host situs; skema & garis miring akhir diabaikan).
 $sameDest = function ($a, $b) {
@@ -33,6 +43,7 @@ foreach ($targets as $id => $to) {
   WP_CLI::log(($dry ? '[dry] ' : '') . "$id $src → draft + 301 ke $dest");
   if ($dry) continue;
   $row = $exists($src); $created = false;
+  if ($row && ($row['status'] ?? 'active') !== 'active') { WP_CLI::warning("$id: redirect #{$row['id']} untuk $src berstatus {$row['status']} — dilewati, post tetap tayang; aktifkan atau hapus manual"); continue; }
   $own = $row && (int) $row['id'] === (int) get_post_meta($id, '_dti_fo_redirect_id', true); // buatan run sebelumnya yang berhenti sebelum unpublish
   if ($own && !$sameDest($row['url_to'] ?? '', $dest)) {
     // Tujuan sudah berubah sejak run itu (target/permalink baru): ganti redirect basi milik sendiri, jangan dipakai ulang.

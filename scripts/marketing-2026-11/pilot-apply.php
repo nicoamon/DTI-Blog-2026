@@ -15,9 +15,9 @@ $dry = in_array('dry', $args, true); $force = in_array('force', $args, true);
 $unknown = array_filter(array_slice($args, 2), fn($a) => !in_array($a, ['dry', 'force'], true) && !preg_match('/^humanizer=/', $a));
 if ($unknown) WP_CLI::error('Argumen tidak dikenal: ' . implode(', ', $unknown) . ' — tidak ada yang ditulis. Boleh: dry, force, humanizer=<x.y.z>.');
 // `force` overwrites whatever is in the post, so it is refused outside staging (prod must match the reviewed asli.html).
-if ($force && strpos(home_url(), 'dti.amon.id') === false) WP_CLI::error('force hanya untuk staging — tidak ada yang ditulis.');
+if ($force && strtolower((string) wp_parse_url(home_url(), PHP_URL_HOST)) !== 'dti.amon.id') WP_CLI::error('force hanya untuk staging — tidak ada yang ditulis.');
 if (!$id || !is_readable("$dir/baru.html") || !is_readable("$dir/asli.html")) WP_CLI::error('Usage: <ID> <dir-with-asli.html-baru.html> humanizer=<x.y.z> [dry] [force]');
-if (!$dry && !current_user_can('unfiltered_html')) WP_CLI::error('Run with --user=nico — nothing changed.');
+if (!$dry && !current_user_can('unfiltered_html')) WP_CLI::error('Run with --user=<admin> (needs unfiltered_html) — nothing changed.');
 $p = get_post($id); if (!$p || $p->post_type !== 'post') WP_CLI::error("$id bukan post");
 $asli = file_get_contents("$dir/asli.html"); $baru = file_get_contents("$dir/baru.html");
 // baru-meta.json (rewrites only) is validated BEFORE anything is written: a broken file must not leave new content under the old title.
