@@ -3,11 +3,11 @@ defined('WP_CLI') && WP_CLI || exit; // WP-CLI only
 /** Pilot humanizer (ACC Nico 22 Nov): ganti post_content post tayang dengan versi yang sudah lolos
  *  gate + reviewer + Mode-2. Poles (batch 1): judul/meta/H1 TIDAK disentuh. Tulis ulang (batch 2; Nico: boleh
  *  ganti judul): baru-meta.json ikut menetapkan post_title + Rank Math. Slug TIDAK pernah diubah.
- *  wp eval-file pilot-apply.php <ID> <dir> humanizer=<x.y.z> [dry] [force] --user=nico
+ *  wp eval-file pilot-apply.php <ID> <dir> humanizer=<x.y.z> [dry] [force] --user=<admin>
  *    <dir> berisi asli.html (isi yang direview) dan baru.html (versi baru).
  *    Tanpa `force`: menolak bila isi saat ini ≠ asli.html (ada suntingan setelah review).
  *    `force` hanya untuk staging (salinan pratinjau).
- *  Rollback: pilot-rollback.php <ID> [dry] --user=nico. Cadangan: _dti_prev_content_pilot (isi) dan, bila tulis ulang,
+ *  Rollback: pilot-rollback.php <ID> [dry] --user=<admin>. Cadangan: _dti_prev_content_pilot (isi) dan, bila tulis ulang,
  *  _dti_pilot_prev_meta (JSON post_title + Rank Math; null = meta itu belum ada). Kunci khusus pilot, terpisah dari
  *  _dti_prev_rank_math_* milik skrip uji judul (apply-title-*.php). */
 [$id, $dir] = [(int) ($args[0] ?? 0), rtrim($args[1] ?? '', '/')];
@@ -61,7 +61,7 @@ clean_post_cache($id);
 if ($norm(get_post($id)->post_content) !== $norm($baru)) {
   // No humanizer stamp, but mark the post so pilot-rollback.php can still restore it (content/title are already written).
   update_post_meta($id, '_dti_pilot', 'GAGAL-VERIFIKASI ' . current_time('mysql'));
-  WP_CLI::error("$id: isi tersimpan BERBEDA dari baru.html — stempel humanizer TIDAK ditulis. Pulihkan dengan: wp eval-file pilot-rollback.php $id --user=nico");
+  WP_CLI::error("$id: isi tersimpan BERBEDA dari baru.html — stempel humanizer TIDAK ditulis. Pulihkan dengan: wp eval-file pilot-rollback.php $id --user=<admin>");
 }
 update_post_meta($id, 'humanizer', "humanizer-amon@$ver");
 update_post_meta($id, '_dti_pilot', current_time('mysql'));

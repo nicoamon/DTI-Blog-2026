@@ -1,7 +1,7 @@
 <?php
 defined('WP_CLI') && WP_CLI || exit; // WP-CLI only
 /** Rollback pilot humanizer (pasangan pilot-apply.php).
- *  wp eval-file pilot-rollback.php <ID> [dry] [force] --user=nico
+ *  wp eval-file pilot-rollback.php <ID> [dry] [force] --user=<admin>
  *  Memulihkan post_content ← _dti_prev_content_pilot (isi SEBELUM pilot; diagram yang ditambahkan sesudahnya ikut hilang)
  *  dan, untuk tulis ulang, post_title + Rank Math ← _dti_pilot_prev_meta (JSON; null = hapus meta).
  *  Post batch 2 yang diterapkan sebelum 25 Nov memakai kunci lama _dti_prev_<k> ('' = hapus meta Rank Math).
