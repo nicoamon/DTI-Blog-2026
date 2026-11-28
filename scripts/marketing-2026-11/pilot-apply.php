@@ -36,7 +36,7 @@ if ($ver === '') WP_CLI::error('Wajib: humanizer=<x.y.z> (isi 00-Core/skills/hum
 $norm = fn($s) => rtrim(function_exists('wp_targeted_link_rel') ? wp_targeted_link_rel((string) $s) : (string) $s);
 $same = $norm($p->post_content) === $norm($baru);
 if ($same && !is_readable("$dir/baru-meta.json")) { WP_CLI::log("$id: sudah versi baru"); return; }
-if (!$same && rtrim($p->post_content) !== rtrim($asli) && !$force) WP_CLI::error("$id: isi saat ini berbeda dari asli.html (ada suntingan setelah review) — tidak ditulis.");
+if (!$same && $norm($p->post_content) !== $norm($asli) && !$force) WP_CLI::error("$id: isi saat ini berbeda dari asli.html (ada suntingan setelah review) — tidak ditulis.");
 WP_CLI::log(($dry ? '[dry] ' : '') . "$id {$p->post_name}: " . strlen($p->post_content) . ' → ' . strlen($baru) . ' byte');
 if ($dry) return;
 // Never store the NEW content as the backup: when the post already holds baru.html there is no original left to save here.
