@@ -3,9 +3,12 @@ defined('WP_CLI') && WP_CLI || exit; // WP-CLI only
 /** amon-dti-marketing 7422669e16 — title/meta test post 5301 (Nico chose option A, 27 Nov 2026, in amon-dti-marketing).
  *  Draft: /home/nico/dti-growth-pagi-7422/content/drafts/7422669e16-title-meta-tte-vs-basah-5301.md (humanizer-amon@1.0.0).
  *  Title/meta only: H1, slug and body are NOT touched. Idempotent. Original values backed up once in
- *  _dti_prev_rank_math_title / _dti_prev_rank_math_description. wp eval-file … [dry] | rollback [force] */
+ *  _dti_prev_rank_math_title / _dti_prev_rank_math_description. wp eval-file … [dry] | rollback [force]   (+ `prod` outside staging, only with Nico's ACC) */
 $dry = in_array('dry', $args ?? [], true);
 $rollback = in_array('rollback', $args ?? [], true);
+// Staging (dti.amon.id) only unless `prod` is passed: a prod change needs Nico's ACC. A dry run is read-only and allowed anywhere.
+$host = strtolower((string) wp_parse_url(home_url(), PHP_URL_HOST));
+if (!$dry && $host !== 'dti.amon.id' && !in_array('prod', $args ?? [], true)) WP_CLI::error("Host '$host' is not staging (dti.amon.id) — append `prod` only with Nico's ACC. Nothing written.");
 $id = 5301;
 $p = get_post($id);
 if (!$p || $p->post_name !== 'tanda-tangan-elektronik-vs-tanda-tangan-basah') WP_CLI::error("$id missing or slug mismatch — wrong DB; nothing changed");

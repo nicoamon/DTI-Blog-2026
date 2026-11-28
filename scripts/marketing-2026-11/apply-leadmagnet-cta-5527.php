@@ -6,10 +6,13 @@ defined('WP_CLI') && WP_CLI || exit; // WP-CLI only
  *  "Titik Rawan yang Membuat Angka Meleset" (both headings are checked). Box title is a <strong>,
  *  so the outline is unchanged. Relative link, no UTM. Idempotent (marker class dti-leadmagnet-cta).
  *  humanizer: humanizer-amon@1.0.0
- *  wp eval-file <this file> --user=<admin> [dry] | rollback [dry] */
+ *  wp eval-file <this file> --user=<admin> [dry] | rollback [dry]   (+ `prod` outside staging, only with Nico's ACC) */
 $dry = in_array('dry', $args ?? [], true);
 $rollback = in_array('rollback', $args ?? [], true);
-$unknown = array_diff($args ?? [], ['dry', 'rollback']); if ($unknown) WP_CLI::error('Unknown argument(s): ' . implode(', ', $unknown) . ' — nothing written. Allowed: dry, rollback.');
+$unknown = array_diff($args ?? [], ['dry', 'rollback', 'prod']); if ($unknown) WP_CLI::error('Unknown argument(s): ' . implode(', ', $unknown) . ' — nothing written. Allowed: dry, rollback, prod.');
+// Staging (dti.amon.id) only unless `prod` is passed: a prod change needs Nico's ACC. A dry run is read-only and allowed anywhere.
+$host = strtolower((string) wp_parse_url(home_url(), PHP_URL_HOST));
+if (!$dry && $host !== 'dti.amon.id' && !in_array('prod', $args ?? [], true)) WP_CLI::error("Host '$host' is not staging (dti.amon.id) — append `prod` only with Nico's ACC. Nothing written.");
 if (!$dry && !current_user_can('unfiltered_html')) WP_CLI::error('Run with --user=<admin> (needs unfiltered_html). Nothing written.');
 $id = 5527; $slug = 'pelaporan-sipnap-software-apotek-klinik';
 $after = 'Titik Rawan yang Membuat Angka Meleset';
