@@ -578,8 +578,13 @@ add_filter( 'rank_math/frontend/canonical', function ( $canonical ) {
 	$url  = get_pagenum_link( $n, false );
 	$base = strtok( $url, '?' );
 	if ( get_option( 'permalink_structure' ) ) return $base;
+	// Nilainya berasal dari request: hanya bilangan bulat positif yang dipakai, sisanya dibuang (bukan disalin mentah).
 	wp_parse_str( (string) wp_parse_url( $url, PHP_URL_QUERY ), $q );
-	return add_query_arg( array_intersect_key( $q, array_flip( array( 'page_id', 'p', 'paged', 'page' ) ) ), $base );
+	$keep = array();
+	foreach ( array( 'page_id', 'p', 'paged', 'page' ) as $k ) {
+		if ( isset( $q[ $k ] ) && is_scalar( $q[ $k ] ) && ctype_digit( (string) $q[ $k ] ) && (int) $q[ $k ] > 0 ) $keep[ $k ] = (int) $q[ $k ];
+	}
+	return add_query_arg( $keep, $base );
 } );
 add_filter( 'rank_math/frontend/title', function ( $title ) {
 	$n = dti_blog_paged_n();
