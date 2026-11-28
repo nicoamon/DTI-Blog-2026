@@ -18,14 +18,18 @@ $box = '<div class="dti-leadmagnet-cta" style="margin:28px 0;padding:18px 20px;b
   . '<strong>' . esc_html('Checklist kepatuhan apotek untuk SIPNAP') . '</strong><br>'
   . esc_html('Panduan ini merinci pelaporan SIPNAP bulanan, kartu stok narkotika dan psikotropika, serta stok opname per area, dengan acuan Permenkes 5/2023, Permenkes 73/2016, dan PP 51/2009.')
   . '<br><a href="' . esc_url('/id/resource/dhealthcare-apotek-sipnap') . '"><strong>' . esc_html('Dapatkan checklist') . '</strong></a></div>';
-$marker = '/<div\b[^>]*\bdti-leadmagnet-cta\b[^>]*>.*?<\/div>/s';
-$markerRb = '/<div\b[^>]*\bdti-leadmagnet-cta\b[^>]*>.*?<\/div>(?:\n\n)?/s';
+// Whole class token inside a class attribute only (same as apply-leadmagnet-cta.php): not dti-leadmagnet-cta-wrap, not data-class=.
+$cls = '(?<![\w-])class\s*=\s*["\'][^"\']*(?<![\w-])dti-leadmagnet-cta(?![\w-])[^"\']*["\']';
+$marker = '/<div\b[^>]*' . $cls . '[^>]*>(.*?)<\/div>/s';
+$markerRb = '/<div\b[^>]*' . $cls . '[^>]*>.*?<\/div>(?:\n\n)?/s';
 $p = get_post($id);
 if (!$p || $p->post_name !== $slug) WP_CLI::error("$id missing or slug mismatch — nothing written");
 if (!$rollback && ($p->post_type !== 'post' || $p->post_status !== 'publish')) WP_CLI::error("$id is {$p->post_type}/{$p->post_status}, not a published post — nothing written");
 $c = $p->post_content;
 if ($rollback) {
-  if (!preg_match($marker, $c)) { WP_CLI::log("$id: no lead-magnet box — nothing to roll back"); return; }
+  if (!preg_match($marker, $c, $bx)) { WP_CLI::log("$id: no lead-magnet box — nothing to roll back"); return; }
+  // A <div> nested in the box (edited in the editor) would cut the match short and leave an orphan </div>.
+  if (stripos($bx[1], '<div') !== false) WP_CLI::error("$id: box contains a nested <div> — not rolled back, remove it by hand");
   $new = preg_replace($markerRb, '', $c, 1);
 } else {
   if (preg_match($marker, $c)) { WP_CLI::log("$id: box already present"); return; }
