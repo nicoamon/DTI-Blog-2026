@@ -4,6 +4,7 @@ defined('WP_CLI') && WP_CLI || exit; // WP-CLI only
  *  Draft: /home/nico/dti-growth-pagi-7422/content/drafts/7422669e16-title-meta-tte-vs-basah-5301.md (humanizer-amon@1.0.0).
  *  Title/meta only: H1, slug and body are NOT touched. Idempotent. Original values backed up once in
  *  _dti_prev_rank_math_title / _dti_prev_rank_math_description. wp eval-file … [dry] | rollback [force]   (+ `prod` outside staging, only with Nico's ACC) */
+$unknown = array_diff($args ?? [], ['dry', 'rollback', 'force', 'prod']); if ($unknown) WP_CLI::error('Unknown argument(s): ' . implode(', ', $unknown) . ' — nothing written. Allowed: dry, rollback, force, prod.');
 $dry = in_array('dry', $args ?? [], true);
 $rollback = in_array('rollback', $args ?? [], true);
 // Staging (dti.amon.id) only unless `prod` is passed: a prod change needs Nico's ACC. A dry run is read-only and allowed anywhere.
